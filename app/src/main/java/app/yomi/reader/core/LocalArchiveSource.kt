@@ -7,7 +7,8 @@ class LocalArchiveSource(private val store: YomiStore) : ContentSource {
     override val id = "local"
     override val name = "Archivos locales"
     override suspend fun search(query: String, filters: SearchFilters): List<Work> {
-        if (filters.page > 0) return emptyList()
+        if (filters.page > 0 || filters.includedTags.isNotEmpty() ||
+            filters.demographic != null || filters.year != null) return emptyList()
         val needle = normalizedTitle(query)
         return store.savedWorks().filter { work ->
             work.sourceId == id &&
