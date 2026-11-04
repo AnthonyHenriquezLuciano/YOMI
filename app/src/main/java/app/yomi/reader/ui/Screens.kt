@@ -78,7 +78,8 @@ fun WorkCard(work: Work, onOpen: () -> Unit, modifier: Modifier = Modifier) {
         WorkCover(work, Modifier.fillMaxWidth().aspectRatio(0.70f))
         Text(work.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        Text(work.format.label, style = MaterialTheme.typography.labelSmall,
+        Text(work.format.label + if (work.catalogOnly) " · Catálogo" else "",
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -278,7 +279,7 @@ fun ExploreScreen(
                 Text("YOMI Global", style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
-                Text("MangaDex + CBZ local", style = MaterialTheme.typography.labelSmall,
+                Text("MangaDex + Comick + CBZ", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
                 Text(results.size.toString() + " títulos", style = MaterialTheme.typography.labelSmall)
@@ -438,6 +439,7 @@ fun SettingsScreen(
 fun DetailScreen(
     work: Work, chapters: List<Chapter>, loading: Boolean, error: String,
     sourceChoices: List<Work>, onSourceChange: (Work) -> Unit,
+    onOpenExternal: (String) -> Unit,
     isSaved: Boolean, isRead: (String) -> Boolean,
     onBack: () -> Unit, onBookmark: () -> Unit,
     onRead: (Chapter) -> Unit, onContinue: () -> Unit,
@@ -466,7 +468,11 @@ fun DetailScreen(
                     Text(work.format.label, style = MaterialTheme.typography.labelLarge)
                     if (work.status.isNotBlank()) Text(work.status,
                         style = MaterialTheme.typography.bodySmall)
-                    Text("Fuente: " + if (work.sourceId == "mangadex") "MangaDex" else "Local",
+                    Text("Fuente: " + when (work.sourceId) {
+                        "mangadex" -> "MangaDex"
+                        "comick" -> "Comick (solo catálogo)"
+                        else -> "Local"
+                    },
                         style = MaterialTheme.typography.labelMedium)
                     Text("Idioma original: " + work.language,
                         style = MaterialTheme.typography.labelSmall)
@@ -483,7 +489,11 @@ fun DetailScreen(
                         sourceChoices.forEach { option ->
                             FilterChip(selected = option.key == work.key,
                                 onClick = { onSourceChange(option) },
-                                label = { Text(if (option.sourceId == "mangadex") "MangaDex" else "CBZ local") })
+                                label = { Text(when(option.sourceId) {
+                                    "mangadex" -> "MangaDex"
+                                    "comick" -> "Comick · Catálogo"
+                                    else -> "CBZ local"
+                                }) })
                         }
                     }
                 }
@@ -491,11 +501,28 @@ fun DetailScreen(
         }
         item {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Button(onClick = onContinue, enabled = chapters.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                    Icon(Icons.Default.MenuBook, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Continuar / Comenzar")
+                if (work.catalogOnly) {
+                    Text("Este proveedor permite descubrir obras. Para leer, abre la página del proveedor o selecciona una fuente compatible.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (work.catalogUrl.startsWith("https://")) {
+                        OutlinedButton(
+                            onClick = { onOpenExternal(work.catalogUrl) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(Icons.Default.OpenInNew, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Abrir en el proveedor")
+                        }
+                    }
+                } else {
+                    Button(onClick = onContinue, enabled = chapters.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+                        Icon(Icons.Default.MenuBook, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Continuar / Comenzar")
+                    }
                 }
                 if (work.description.isNotBlank()) {
                     var synopsisExpanded by rememberSaveable(work.key) { mutableStateOf(false) }

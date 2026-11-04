@@ -21,7 +21,9 @@ data class Work(
     val language: String = "",
     val alternativeTitles: List<String> = emptyList(),
     val longStrip: Boolean = false,
-    val status: String = ""
+    val status: String = "",
+    val catalogUrl: String = "",
+    val catalogOnly: Boolean = false
 ) {
     val key: String get() = sourceId + ":" + id
     fun defaultMode(): ReadingMode = when {

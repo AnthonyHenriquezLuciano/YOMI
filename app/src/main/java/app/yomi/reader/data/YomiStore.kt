@@ -39,6 +39,7 @@ class YomiStore(private val context: Context) {
         put("cover", work.coverUrl); put("format", work.format.name)
         put("language", work.language); put("alternatives", JSONArray(work.alternativeTitles))
         put("longStrip", work.longStrip); put("status", work.status)
+        put("catalogUrl", work.catalogUrl); put("catalogOnly", work.catalogOnly)
     }
     private fun decodeWork(json: JSONObject): Work = Work(
         id = json.optString("id"), sourceId = json.optString("sourceId"),
@@ -50,7 +51,9 @@ class YomiStore(private val context: Context) {
             (0 until a.length()).map { a.optString(it) }
         } ?: emptyList(),
         longStrip = json.optBoolean("longStrip"),
-        status = json.optString("status")
+        status = json.optString("status"),
+        catalogUrl = json.optString("catalogUrl"),
+        catalogOnly = json.optBoolean("catalogOnly")
     )
     private fun chapterJson(chapter: Chapter) = JSONObject().apply {
         put("id", chapter.id); put("sourceId", chapter.sourceId)

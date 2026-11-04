@@ -1,6 +1,8 @@
 package app.yomi.reader
 
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,7 +39,8 @@ fun YomiApp() {
     val store = remember { YomiStore(context.applicationContext) }
     val remote = remember { MangaDexSource() }
     val localSource = remember { LocalArchiveSource(store) }
-    val catalog = remember { GlobalCatalog(listOf(remote, localSource)) }
+    val comick = remember { ComickCatalogSource() }
+    val catalog = remember { GlobalCatalog(listOf(remote, comick, localSource)) }
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(Tab.HOME) }
     var dark by remember { mutableStateOf(false) }
@@ -128,7 +131,9 @@ fun YomiApp() {
         chapters = emptyList()
         chapterLoading = true
         try {
-            chapters = if (work.sourceId == "local") {
+            chapters = if (work.catalogOnly) {
+                emptyList()
+            } else if (work.sourceId == "local") {
                 store.downloads().filter { it.work.key == work.key }.map { it.chapter }
             } else {
                 catalog.source(work.sourceId)?.chapters(work).orEmpty()
@@ -196,6 +201,11 @@ fun YomiApp() {
                     work = work, chapters = chapters, loading = chapterLoading,
                     sourceChoices = sourceVariants.values.firstOrNull { group -> group.any { it.key == work.key } } ?: listOf(work),
                     onSourceChange = { selectedWork = it },
+                    onOpenExternal = { link ->
+                        if (link.startsWith("https://")) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                        }
+                    },
                     error = error, isSaved = library.any { it.key == work.key },
                     isRead = { store.isRead(it) },
                     onBack = { selectedWork = null; error = "" },
