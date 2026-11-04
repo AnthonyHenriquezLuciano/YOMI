@@ -66,6 +66,29 @@ class ConnectedSourcesTest {
         assertEquals(listOf("https://cdn.example.org/chapters/1.webp"), pages)
     }
 
+    @Test fun dragonTranslationHasNativeChapterParser() {
+        val adapter = MadaraNativeSource(
+            BundledMadaraSources.configs.first { it.id == "dragontranslationorg" }
+        )
+        val work = Work(
+            id = "/manga/historia/",
+            sourceId = adapter.id,
+            title = "Historia"
+        )
+        val document = Jsoup.parse(
+            """<script type="application/json">
+                {"mangaId":"abc","items":[
+                    {"name":"Capítulo 1","url":"/manga/historia/chap1/","ago":"hoy"}
+                ]}
+            </script>""".trimIndent(),
+            "https://dragontranslation.org/manga/historia/"
+        )
+        val chapters = adapter.parseDragonChapters(document, work)
+        assertEquals(1, chapters.size)
+        assertEquals("Capítulo 1", chapters.single().title)
+        assertEquals("es", chapters.single().language)
+    }
+
     @Test fun filtersIncludeAllInstalledAdaptersByDefault() {
         assertEquals(0, SearchFilters().activeCount())
         assertFalse(DEFAULT_NATIVE_SOURCE_IDS.contains("comick"))
