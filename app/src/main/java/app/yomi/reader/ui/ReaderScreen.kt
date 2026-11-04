@@ -13,6 +13,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import coil3.request.ImageRequest
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import app.yomi.reader.core.BundledMadaraSources
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -27,6 +32,26 @@ import app.yomi.reader.data.YomiStore
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.abs
+
+@Composable
+private fun nativePageRequest(url: String, sourceId: String): ImageRequest {
+    val context = LocalContext.current
+    return remember(url, sourceId) {
+        val request = ImageRequest.Builder(context).data(url)
+        val config = BundledMadaraSources.configs.firstOrNull {
+            sourceId == "mdr_" + it.id
+        }
+        if (config != null) {
+            request.httpHeaders(
+                NetworkHeaders.Builder()
+                    .set("Referer", config.root.trimEnd('/') + "/")
+                    .set("User-Agent", "YOMI-Android/0.7")
+                    .build()
+            )
+        }
+        request.build()
+    }
+}
 
 /**
  * No persistent toolbars. Tap the center to reveal/hide controls.
@@ -123,7 +148,7 @@ fun ReaderScreen(
             ) {
                 itemsIndexed(urls) { index, url ->
                     AsyncImage(
-                        model = url,
+                        model = nativePageRequest(url, chapter.sourceId),
                         contentDescription = "Página " + (index + 1),
                         contentScale = ContentScale.FillWidth,
                         modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 200.dp)
@@ -142,7 +167,9 @@ fun ReaderScreen(
                 }
             }
             else -> AsyncImage(
-                model = urls[pageIndex.coerceIn(0, urls.lastIndex)],
+                model = nativePageRequest(
+                    urls[pageIndex.coerceIn(0, urls.lastIndex)], chapter.sourceId
+                ),
                 contentDescription = "Página " + (pageIndex + 1),
                 modifier = Modifier.fillMaxSize()
                     .pointerInput(mode, urls.size, pageIndex) {

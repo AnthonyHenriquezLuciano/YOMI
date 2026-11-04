@@ -14,6 +14,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
+import app.yomi.reader.core.BundledMadaraSources
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -175,15 +177,24 @@ class YomiStore(private val context: Context) {
         work: Work, chapter: Chapter, urls: List<String>, progress: (Int) -> Unit = {}
     ) = withContext(Dispatchers.IO) {
         require(urls.isNotEmpty()) { "No hay páginas disponibles" }
-        val folder = File(context.filesDir, "chapters/" + chapter.id)
+        val safeId = MessageDigest.getInstance("SHA-256")
+            .digest(chapter.id.toByteArray(Charsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+        val folder = File(context.filesDir, "chapters/" + safeId)
         folder.mkdirs()
         val written = mutableListOf<String>()
         try {
             for ((index, url) in urls.withIndex()) {
                 val target = File(folder, index.toString().padStart(4, '0') + ".jpg")
+                require(url.startsWith("https://")) { "Solo se permiten imágenes HTTPS" }
                 val connection = (URL(url).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 15_000; readTimeout = 30_000
-                    setRequestProperty("User-Agent", "YOMI-Android/0.1")
+                    instanceFollowRedirects = false
+                    setRequestProperty("User-Agent", "YOMI-Android/0.7")
+                    val origin = BundledMadaraSources.configs.firstOrNull {
+                        chapter.sourceId == "mdr_" + it.id
+                    }?.root
+                    if (origin != null) setRequestProperty("Referer", origin.trimEnd('/') + "/")
                 }
                 try {
                     if (connection.responseCode !in 200..299) error("Error de descarga")
