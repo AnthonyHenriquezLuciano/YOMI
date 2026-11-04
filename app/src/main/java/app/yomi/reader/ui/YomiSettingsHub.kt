@@ -18,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import app.yomi.reader.R
 import app.yomi.reader.core.BundledMadaraSources
@@ -90,7 +91,7 @@ fun YomiSettingsHub(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(7.dp))
                 Text("VERSION 0.8.0", style = MaterialTheme.typography.labelSmall,
-                    letterSpacing = androidx.compose.ui.unit.TextUnit(1.2f, androidx.compose.ui.unit.TextUnitType.Sp),
+                    letterSpacing = 1.2.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(16.dp))
                 Surface(

@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 
 /**
  * Local and explicit SAF JSON backup. No online sync, cloud services, or file
@@ -55,9 +56,17 @@ class YomiBackup(private val context: Context) {
         val input = context.contentResolver.openInputStream(uri)
             ?: error("No se pudo abrir el respaldo")
         val data = input.use {
-            val bytes = it.readNBytes(6_000_001)
-            require(bytes.size <= 6_000_000) { "Archivo mayor de 6 MB" }
-            bytes.toString(Charsets.UTF_8)
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(16 * 1024)
+            var count = 0
+            while (true) {
+                val read = it.read(buffer)
+                if (read < 0) break
+                count += read
+                require(count <= 6_000_000) { "Archivo mayor de 6 MB" }
+                output.write(buffer, 0, read)
+            }
+            output.toString(Charsets.UTF_8.name())
         }
         val root = JSONObject(data)
         require(root.optString("app") == "YOMI" && root.optInt("schema") == 1) {

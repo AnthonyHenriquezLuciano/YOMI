@@ -1,69 +1,47 @@
-# YOMI Global · Android 0.7
+# YOMI Global — Android 0.8.0
 
-Android reader for manga, manhwa, manhua, with Spanish-first global search.
-Kotlin + Jetpack Compose; no advertisements or embedded web browser.
+Lector nativo de manga, manhwa y manhua en español, basado en Kotlin y Jetpack Compose. Una sola APK, sin WebView y sin instalar extensiones adicionales.
 
-## Bundled extensions — installed as part of the APK
+## Rediseño visual 0.8
 
-**Ten native Spanish source adapters**, derived from the Apache-2.0
-Keiyoushi Madara source patterns, are compiled into YOMI:
+- **Explorar compacto:** campo de búsqueda de 46 dp, filtros en icono, formatos rápidos, menos encabezados y más espacio para las portadas.
+- **Inicio renovado:** obra destacada, continuar leyendo, colección reciente y sugerencias basadas en el catálogo cargado y los géneros de tu biblioteca. No se inventan valoraciones ni posiciones de popularidad.
+- **Ajustes rediseñados:** logo YOMI arriba, estadísticas y paneles plegables de Apariencia, Lectura, Biblioteca, Fuentes, Descargas, Datos y Acerca de.
+- **Tipografía:** jerarquía y espaciados coherentes, tarjetas con portadas y metadatos discretos, animación de sinopsis.
+- **Carga elegante:** tarjetas esqueleto animadas al consultar el catálogo.
+- **Transiciones:** fundidos suaves entre secciones, configurables en Ajustes.
+- **Bienvenida en tres pasos:** tema, modo de lectura y selección de fuentes, en el primer inicio.
 
-| Source | Language | Engine |
-|---|---|---|
-| KazokuDen | es | Madara HTML |
-| Inventario Oculto | es | Madara AJAX |
-| Hades no Fansub | es | Madara AJAX |
-| Manhwa Latino | es | Madara HTML |
-| Monopoly Scan | es | Madara AJAX |
-| Taurus Fansub | es | Madara AJAX |
-| House of Otakus | es | Madara AJAX |
-| Marmota | es | Madara AJAX |
-| Ragnarok Scanlation | es | Madara AJAX |
-| Dragon Translation | es | Madara HTML |
+## Preferencias funcionales
 
-Open **Explorar → Fuentes** to see the sources, search one source, or search
-them all together with MangaDex. You can select individual sources from
-**Explorar → Filtros → Fuentes disponibles**.
+- Tema automático, claro u oscuro.
+- Lector: modo inicial manga/webtoon, zonas de toque, márgenes, brillo propio, pantalla despierta durante lectura y precarga de siguiente página.
+- Fuentes: activar o desactivar cualquiera de los diez adaptadores Madara junto a MangaDex y archivos locales. Lo seleccionado determina los proveedores consultados por Explorar.
+- Descargas: opción de usar solamente Wi-Fi; muestra una advertencia si se intenta descargar usando otra red.
+- Biblioteca: categorías, favoritos, filtros, grupos y navegación ya existentes.
 
-**These are not downloaded or installed as separate extension APKs.** Their
-configuration and native adapter code are distributed *inside the YOMI APK*.
-The only network calls happen when searching catalogs, retrieving chapters,
-reading image pages, or downloading chapters offline.
+## Descargas mejoradas
 
-Each source uses YOMI's built-in search/reader interfaces. This implementation
-covers common WordPress/Madara HTML and AJAX layouts. Site-specific features
-may require adjustments. An unavailable site may return an error or empty
-results; integration with the app does not guarantee all sources are live.
-The source engine rejects external website navigation and never displays a
-WebView, executes remote code or bypasses anti-bot measures.
+La pantalla agrupa las descargas por obra, muestra páginas y espacio ocupado, y permite eliminar capítulos con confirmación. La cola de descargas admite **pausa entre páginas/capítulos**, reanudación, cancelación y reintento de capítulos fallidos mientras la app sigue abierta. El progreso del capítulo procede del descargador existente.
 
-The list of third-party source names and URLs is based on the Keiyoushi
-repository source code, which is licensed Apache-2.0. See [NOTICE](NOTICE.md).
+**Límite:** las descargas de lote aún requieren mantener YOMI abierta. No son trabajos persistentes de WorkManager y no se promete que continúen al cerrar la app.
 
-## Other YOMI sources
+## Respaldo local
 
-- **MangaDex**: public API, Spanish chapters, native reader.
-- **Local CBZ**: offline reader.
-- **MangaPDF**: native API adapter retained, but *excluded from the
-  Spanish-only global feed* because its API lacks a reliable language flag.
-- **Comick**: historical metadata-only connector, excluded from the Spanish
-  global feed; it is not a reader.
+Desde **Ajustes → Datos y respaldo** puedes exportar/restaurar un JSON mediante el selector de archivos Android. Conserva información de biblioteca, categorías, historial, preferencias y datos de lectura; **no incluye archivos CBZ ni imágenes descargadas**. Importar un respaldo fusiona las entradas de datos en el dispositivo. No hay almacenamiento en nube.
 
-## Reader, library and downloads
+## Fuentes y límites
 
-- Adaptive manga RTL, page LTR and vertical webtoon viewing.
-- Immersive reader: controls shown by tapping; Android system bars hidden.
-- Persistent library, categories, sorting, groups, reading history.
-- Full/batch downloads of loaded chapter lists while the app is open.
-- Spanish synopsis when supplied or optional ML Kit on-device translation.
+El lector integra MangaDex y diez adaptadores nativos para catálogos con contenido en español, utilizando las APIs o selectores correspondientes. Los proveedores pueden cambiar de estructura, restringir acceso o quedar temporalmente fuera de servicio: compilar correctamente no demuestra que todas sus obras abran.
 
-## Validation
+Pendiente para una versión de producción:
+- Descargas persistentes con WorkManager y reintento después de reinicios.
+- Pruebas de interacción, accesibilidad y rendimiento en dispositivos reales.
+- Sincronización opcional y migración de respaldos Mihon.
+- Validación continua de cada adaptador contra su sitio en vivo.
 
-GitHub Actions builds with Gradle and runs unit tests for native adapters.
-**Not yet verified end-to-end on real Android devices against all ten live
-websites**. Websites may use login, protections or inconsistent chapters
-which YOMI will not bypass. Check each source's functionality in the app.
+## Compilar e instalar
 
-Download the latest successful APK through
-[GitHub Actions](https://github.com/AnthonyHenriquezLuciano/YOMI/actions)
-→ Android APK → Artifacts → \`YOMI-debug-apk\`.
+En [GitHub Actions](https://github.com/AnthonyHenriquezLuciano/YOMI/actions), abre **Android APK** y descarga el artefacto **YOMI-debug-apk** de una ejecución verde. Dentro del ZIP estará \`app-debug.apk\`.
+
+Uso personal; respeta las políticas, licencias y derechos de autores y proveedores.
