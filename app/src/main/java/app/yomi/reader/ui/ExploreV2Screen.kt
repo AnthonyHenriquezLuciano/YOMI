@@ -54,7 +54,7 @@ fun ExploreV2Screen(
                 TextButton(onClick = onSources) {
                     Icon(Icons.Default.Language, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(5.dp))
-                    Text("10 fuentes")
+                    Text("Fuentes")
                 }
             }
             OutlinedTextField(
@@ -302,8 +302,13 @@ private fun FullExploreFilterSheet(
                 ExploreChoices(CatalogSort.entries.map { it to it.label },
                     draft.sort) { draft = draft.copy(sort = it) }
                 FilterHeading("Fuentes disponibles")
-                listOf("mangadex" to "MangaDex · Español",
-                    "local" to "Mis archivos CBZ").forEach { (id, label) ->
+                val sourceOptions = listOf(
+                    "mangadex" to "MangaDex · Español",
+                    "local" to "Mis archivos CBZ"
+                ) + BundledMadaraSources.configs.map { cfg ->
+                    "mdr_" + cfg.id to (cfg.title + " · Español")
+                }
+                sourceOptions.forEach { (id, label) ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = id in draft.sourceIds, onCheckedChange = { checked ->
                             val updated = if (checked) draft.sourceIds + id
@@ -314,8 +319,8 @@ private fun FullExploreFilterSheet(
                     }
                 }
                 Text(
-                    "Los repositorios de extensiones aparecen en Ajustes. " +
-                        "No se consideran fuentes de lectura hasta tener un conector verificado.",
+                    "Las diez fuentes españolas vienen incluidas en YOMI. " +
+                        "Cada proveedor puede dejar de funcionar si cambia su estructura o limita el acceso.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

@@ -74,6 +74,10 @@ enum class CatalogSort(val label: String, val apiKey: String, val direction: Str
     RELEVANCE("Relevancia", "relevance", "desc")
 }
 
+val DEFAULT_NATIVE_SOURCE_IDS: Set<String> =
+    setOf("mangadex", "local") +
+        BundledMadaraSources.configs.map { "mdr_" + it.id }
+
 data class SearchFilters(
     val format: WorkFormat? = null,
     val status: String? = null,
@@ -88,7 +92,7 @@ data class SearchFilters(
     val demographic: String? = null,
     val year: Int? = null,
     val allowSuggestive: Boolean = true,
-    val sourceIds: Set<String> = setOf("mangadex", "local"),
+    val sourceIds: Set<String> = DEFAULT_NATIVE_SOURCE_IDS,
     val verifyChapters: Boolean = true
 ) {
     init {
@@ -103,7 +107,7 @@ data class SearchFilters(
             includedTags.size + excludedTags.size +
             (if (sort != CatalogSort.UPDATED) 1 else 0) +
             (if (!allowSuggestive) 1 else 0) +
-            (if (sourceIds != setOf("mangadex", "local")) 1 else 0)
+            (if (sourceIds != DEFAULT_NATIVE_SOURCE_IDS) 1 else 0)
 }
 
 data class SourceSearchPage(

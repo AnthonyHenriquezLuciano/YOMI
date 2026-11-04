@@ -56,7 +56,10 @@ fun YomiApp() {
     val localSource = remember { LocalArchiveSource(store) }
     val comick = remember { ComickCatalogSource() }
     val mangaPdf = remember { MangaPdfSource() }
-    val catalog = remember { GlobalCatalog(listOf(remote, comick, mangaPdf, localSource)) }
+    val bundled = remember { BundledMadaraSources.configs.map(::MadaraNativeSource) }
+    val catalog = remember {
+        GlobalCatalog(listOf(remote, comick, mangaPdf, localSource) + bundled)
+    }
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(Tab.HOME) }
     var dark by remember { mutableStateOf(false) }
@@ -74,8 +77,6 @@ fun YomiApp() {
     var error by remember { mutableStateOf("") }
     var showRepositories by remember { mutableStateOf(false) }
     var showSources by remember { mutableStateOf(false) }
-    var showMangaPdf by remember { mutableStateOf(false) }
-    var webSource by remember { mutableStateOf<ConnectedSource?>(null) }
     var selectedWork by remember { mutableStateOf<Work?>(null) }
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
@@ -315,13 +316,11 @@ fun YomiApp() {
         }
     }
     BackHandler(enabled = showRepositories || showCategorySettings || showHistory ||
-        showSources || showMangaPdf || webSource != null ||
+        showSources ||
         selectedChapter != null || selectedWork != null || tab != Tab.HOME) {
         when {
             selectedChapter != null -> { selectedChapter = null; refreshLocal() }
             selectedWork != null -> { selectedWork = null; error = "" }
-            webSource != null -> webSource = null
-            showMangaPdf -> showMangaPdf = false
             showSources -> showSources = false
             showHistory -> showHistory = false
             showCategorySettings -> showCategorySettings = false
@@ -429,19 +428,19 @@ fun YomiApp() {
                     downloadStatus = downloadStatus,
                     onCancelDownloads = { downloadJob?.cancel() }
                 )
-                webSource != null -> SourceWebsiteScreen(
-                    source = webSource!!,
-                    onBack = { webSource = null }
-                )
-                showMangaPdf -> MangaPdfBrowserScreen(
-                    source = mangaPdf,
-                    onBack = { showMangaPdf = false },
-                    onOpen = { selectedWork = it }
-                )
-                showSources -> ConnectedSourcesScreen(
+                showSources -> BundledSourcesScreen(
+                    sources = bundled,
                     onBack = { showSources = false },
-                    onNative = { showMangaPdf = true },
-                    onWeb = { webSource = it }
+                    onOpenSource = { sourceId ->
+                        showSources = false
+                        tab = Tab.EXPLORE
+                        search("", SearchFilters(sourceIds = setOf(sourceId)))
+                    },
+                    onSearchAll = {
+                        showSources = false
+                        tab = Tab.EXPLORE
+                        search("", SearchFilters(sourceIds = DEFAULT_NATIVE_SOURCE_IDS))
+                    }
                 )
                 else -> Scaffold(
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),

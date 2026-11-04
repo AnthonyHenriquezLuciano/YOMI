@@ -422,25 +422,25 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider()
         Text("Fuentes integradas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("MangaDex · Lector integrado", fontWeight = FontWeight.Medium)
-        Text("Comick · Catálogo pendiente de verificación de idioma español", fontWeight = FontWeight.Medium)
+        Text("MangaDex · Lector nativo integrado", fontWeight = FontWeight.Medium)
+        Text("Extensiones españolas de Keiyoushi · 10 conectores nativos", fontWeight = FontWeight.Medium)
         Text("CBZ local · Importación desde el dispositivo", fontWeight = FontWeight.Medium)
         OutlinedButton(onClick = onSources, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Language, null)
             Spacer(Modifier.width(8.dp))
-            Text("Abrir 10 fuentes conectadas")
+            Text("Fuentes incluidas en la APK")
         }
         OutlinedButton(onClick = onRepositories, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.AccountTree, null)
             Spacer(Modifier.width(8.dp))
             Text("Explorar repositorios de extensiones")
         }
-        Text("Los índices muestran proveedores disponibles. Las extensiones APK no se ejecutan ni se instalan en YOMI.",
+        Text("La biblioteca de fuentes se incluye en la instalación. No se necesitan APK adicionales ni navegador integrado.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider()
         Text("Atribución y uso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("YOMI no incluye anuncios. MangaDex y MangaPDF usan APIs públicas; las demás fuentes se abren como sitios oficiales dentro de la app. " +
+        Text("YOMI no incluye anuncios. Las fuentes integradas usan APIs o adaptadores de código abierto nativos. " +
             "Las obras y traducciones pertenecen a sus respectivos autores y grupos. " +
             "Se respetan solicitudes de retirada y términos de cada proveedor.",
             style = MaterialTheme.typography.bodyMedium)
