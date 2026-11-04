@@ -28,6 +28,11 @@ import app.yomi.reader.core.Chapter
 import app.yomi.reader.core.CatalogTag
 import app.yomi.reader.core.Work
 import coil3.compose.AsyncImage
+import coil3.toBitmap
+import androidx.palette.graphics.Palette
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Portada inmersiva, sinopsis plegada y selección de capítulos para descarga.
@@ -56,6 +61,8 @@ fun YomiDetailScreen(
     onCancelDownloads: () -> Unit
 ) {
     var synopsisExpanded by rememberSaveable(work.key) { mutableStateOf(false) }
+    var coverAccent by remember(work.key) { mutableStateOf(Color(0xFF1A1A1E)) }
+    val paletteScope = rememberCoroutineScope()
     var downloadDialog by remember(work.key) { mutableStateOf(false) }
     var downloadMode by remember(work.key) { mutableStateOf("full") }
     var first by remember(work.key) { mutableStateOf("1") }
@@ -170,12 +177,24 @@ fun YomiDetailScreen(
                     if (work.coverUrl.isNotBlank()) AsyncImage(
                         model = work.coverUrl, contentDescription = null,
                         modifier = Modifier.fillMaxSize().blur(26.dp),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        onSuccess = { state ->
+                            paletteScope.launch {
+                                val tone = runCatching {
+                                    withContext(Dispatchers.Default) {
+                                        Palette.from(state.result.image.toBitmap(128, 128))
+                                            .maximumColorCount(8).generate()
+                                            .getDarkMutedColor(0xFF1A1A1E.toInt())
+                                    }
+                                }.getOrDefault(0xFF1A1A1E.toInt())
+                                coverAccent = Color(tone)
+                            }
+                        }
                     )
                     Box(Modifier.matchParentSize().background(
                         Brush.verticalGradient(
                             listOf(Color.Black.copy(alpha = 0.30f),
-                                Color.Black.copy(alpha = 0.55f),
+                                coverAccent.copy(alpha = 0.75f),
                                 Color.Black.copy(alpha = 0.94f))
                         )
                     ))

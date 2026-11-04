@@ -43,6 +43,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.google.mlkit:translate:17.0.3")
     implementation("org.jsoup:jsoup:1.18.3")
+    implementation("androidx.palette:palette:1.0.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     // The Android org.json stub throws in plain JVM unit tests.
