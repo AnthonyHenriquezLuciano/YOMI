@@ -28,6 +28,8 @@ import app.yomi.reader.core.Chapter
 import app.yomi.reader.core.CatalogTag
 import app.yomi.reader.core.Work
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import coil3.toBitmap
 import androidx.palette.graphics.Palette
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +65,11 @@ fun YomiDetailScreen(
     var synopsisExpanded by rememberSaveable(work.key) { mutableStateOf(false) }
     var coverAccent by remember(work.key) { mutableStateOf(Color(0xFF1A1A1E)) }
     val paletteScope = rememberCoroutineScope()
+    val coverContext = LocalContext.current
+    val coverRequest = remember(work.coverUrl) {
+        ImageRequest.Builder(coverContext).data(work.coverUrl)
+            .allowHardware(false).build()
+    }
     var downloadDialog by remember(work.key) { mutableStateOf(false) }
     var downloadMode by remember(work.key) { mutableStateOf("full") }
     var first by remember(work.key) { mutableStateOf("1") }
@@ -175,7 +182,7 @@ fun YomiDetailScreen(
                 Box(Modifier.fillMaxWidth().height(335.dp).clipToBounds()
                     .background(MaterialTheme.colorScheme.surfaceVariant)) {
                     if (work.coverUrl.isNotBlank()) AsyncImage(
-                        model = work.coverUrl, contentDescription = null,
+                        model = coverRequest, contentDescription = null,
                         modifier = Modifier.fillMaxSize().blur(26.dp),
                         contentScale = ContentScale.Crop,
                         onSuccess = { state ->
