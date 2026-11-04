@@ -32,6 +32,7 @@ fun YomiHomeScreen(
     saved: List<LibraryItem>,
     discovered: List<Work>,
     loading: Boolean,
+    animationsEnabled: Boolean = true,
     onOpen: (Work) -> Unit,
     onResume: (Work) -> Unit,
     onExplore: () -> Unit
@@ -159,7 +160,7 @@ fun YomiHomeScreen(
                         contentPadding = PaddingValues(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(5) { ShimmerWorkCard(Modifier.width(138.dp)) }
+                        items(5) { ShimmerWorkCard(Modifier.width(138.dp), animated = animationsEnabled) }
                     }
                 }
             }
@@ -286,13 +287,16 @@ private fun ContinueCard(item: LibraryItem, onClick: () -> Unit) {
 }
 
 @Composable
-fun ShimmerWorkCard(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "Carga")
-    val alpha by transition.animateFloat(
-        initialValue = 0.35f, targetValue = 0.82f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "Brillo de carga"
-    )
+fun ShimmerWorkCard(modifier: Modifier = Modifier, animated: Boolean = true) {
+    val alpha = if (animated) {
+        val transition = rememberInfiniteTransition(label = "Carga")
+        val value by transition.animateFloat(
+            initialValue = 0.35f, targetValue = 0.82f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "Brillo de carga"
+        )
+        value
+    } else 0.60f
     Column(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Box(Modifier.fillMaxWidth().aspectRatio(.70f)
             .clip(RoundedCornerShape(13.dp))

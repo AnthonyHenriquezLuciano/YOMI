@@ -287,7 +287,13 @@ fun YomiApp() {
                     searchWorks = result.works
                     sourceVariants = result.alternatives
                 }
-                if (result.errors.isNotEmpty()) error = result.errors.joinToString("\n")
+                if (result.errors.isNotEmpty()) {
+                    error = if (result.works.isNotEmpty())
+                        result.errors.size.toString() +
+                            " fuentes no disponibles · Se muestran resultados parciales"
+                    else result.errors.take(2).joinToString(" · ") +
+                        if (result.errors.size > 2) " · y más fuentes no disponibles" else ""
+                }
                 if (result.errors.isEmpty() || result.works.isNotEmpty()) {
                     page = nextPage
                     hasMore = result.hasMore
@@ -575,6 +581,7 @@ fun YomiApp() {
                             Tab.HOME -> YomiHomeScreen(
                                 saved = libraryItems, discovered = searchWorks,
                                 loading = searching,
+                                animationsEnabled = preferences.enableAnimations,
                                 onOpen = { selectedWork = it },
                                 onResume = { resume(it) },
                                 onExplore = { tab = Tab.EXPLORE }
@@ -596,7 +603,8 @@ fun YomiApp() {
                                 onFiltersChanged = { search(query, it) },
                                 onOpen = { selectedWork = it },
                                 compactCovers = preferences.compactCovers,
-                                showBadges = preferences.showContentBadges
+                                showBadges = preferences.showContentBadges,
+                                animationsEnabled = preferences.enableAnimations
                             )
                             Tab.LIBRARY -> LibraryV2Screen(
                                 library = libraryItems,

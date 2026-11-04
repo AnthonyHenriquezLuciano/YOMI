@@ -35,7 +35,8 @@ fun ExploreV2Screen(
     onSearch: () -> Unit, onFiltersChanged: (SearchFilters) -> Unit,
     onOpen: (Work) -> Unit,
     compactCovers: Boolean = false,
-    showBadges: Boolean = true
+    showBadges: Boolean = true,
+    animationsEnabled: Boolean = true
 ) {
     var filtersOpen by remember { mutableStateOf(false) }
     if (filtersOpen) FullExploreFilterSheet(
@@ -183,7 +184,7 @@ fun ExploreV2Screen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(8) { ShimmerWorkCard() }
+                    items(8) { ShimmerWorkCard(animated = animationsEnabled) }
                 }
             }
             !loading && results.isEmpty() -> Box(
