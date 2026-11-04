@@ -2,6 +2,7 @@ package app.yomi.reader.core
 
 import android.icu.text.Transliterator
 import android.os.SystemClock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -18,6 +19,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * MangaDex Spanish source. Chapter availability is checked against each
@@ -30,6 +32,7 @@ class MangaDexSource : ContentSource {
     private val requestMutex = Mutex()
     private val concurrentChecks = Semaphore(3)
     private var lastRequest = 0L
+    private val spanishCounts = ConcurrentHashMap<String, Pair<Long, Int>>()
 
     private fun enc(text: String) = URLEncoder.encode(text, "UTF-8")
     private fun parameters(parts: List<Pair<String, String>>) =
@@ -275,11 +278,20 @@ class MangaDexSource : ContentSource {
             parsed.map { work ->
                 async {
                     concurrentChecks.withPermit {
-                        val count = runCatching { spanishChapterCount(work.id) }.getOrDefault(0)
+                        val count = try {
+                            spanishChapterCount(work.id)
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (e: Exception) {
+                            -1 // Unknown: never display an unverified empty title.
+                        }
                         work.copy(chapterCount = count)
                     }
                 }
             }.awaitAll()
+        }
+        if (parsed.isNotEmpty() && checked.all { it.chapterCount == -1 }) {
+            error("No se pudo verificar la disponibilidad de capítulos. Inténtalo de nuevo.")
         }
         return SourceSearchPage(
             checked.filter { it.chapterCount > 0 || !filters.verifyChapters },
@@ -289,14 +301,19 @@ class MangaDexSource : ContentSource {
     }
 
     private suspend fun spanishChapterCount(mangaId: String): Int {
+        spanishCounts[mangaId]?.let { (checkedAt, count) ->
+            if (SystemClock.elapsedRealtime() - checkedAt < 15 * 60 * 1000L) return count
+        }
         val url = api + "/manga/" + enc(mangaId) + "/feed?" + parameters(listOf(
             "limit" to "1", "translatedLanguage[]" to "es", "includeExternalUrl" to "0"
         ))
         val response = getJson(url)
         val chapters = response.optJSONArray("data") ?: JSONArray()
         // The server's filtered total is the most accurate value for availability.
-        return if (chapters.length() == 0) 0 else
+        val count = if (chapters.length() == 0) 0 else
             response.optInt("total", chapters.length()).coerceAtLeast(1)
+        spanishCounts[mangaId] = SystemClock.elapsedRealtime() to count
+        return count
     }
 
     override suspend fun chapters(work: Work): List<Chapter> {

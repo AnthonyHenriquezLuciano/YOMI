@@ -5,6 +5,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CatalogTest {
+    @Test fun spanishTitlesWinOverForeignOriginals() {
+        assertEquals("La gran aventura",
+            MangaDexSource.readableTitle(listOf(
+                "zh" to "伟大的冒险", "en" to "The Grand Adventure",
+                "es" to "La gran aventura"
+            )))
+    }
+    @Test fun romanizedNameWinsOverCjkWhenSpanishIsMissing() {
+        assertEquals("Yomi Adventure",
+            MangaDexSource.readableTitle(listOf(
+                "zh" to "梦幻之旅", "zh-ro" to "Yomi Adventure"
+            )))
+    }
+    @Test fun synopsisPrefersSpanishAndNullNeverAppears() {
+        assertEquals("Una aventura increíble.",
+            MangaDexSource.spanishSynopsis(listOf(
+                "en" to "An amazing adventure.", "es" to "Una aventura increíble."
+            )).second)
+        assertEquals("", safeText("null"))
+        assertEquals("Capítulo especial", displayChapterTitle("null", "null"))
+        assertEquals("Capítulo 7", displayChapterTitle("7", "null"))
+    }
+    @Test fun tagsTranslateSpanishFallbacks() {
+        assertEquals("Fantasía", MangaDexSource.localizedTag("Fantasy", ""))
+        assertEquals("Aventura", MangaDexSource.localizedTag("Adventure", "Aventura"))
+    }
+
     @Test fun completeDownloadsKeepDifferentVolumes() {
         val first = Chapter("c1", "w", "md", "Capítulo 1", number = "1", volume = "1")
         val repeated = Chapter("c2", "w", "md", "Capítulo 1", number = "1", volume = "1")
