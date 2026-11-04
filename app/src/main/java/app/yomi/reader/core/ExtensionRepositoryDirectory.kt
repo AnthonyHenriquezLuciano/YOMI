@@ -56,6 +56,21 @@ class ExtensionRepositoryDirectory(private val context: Context) {
                 name = "WOX · Índice comunitario",
                 url = "https://raw.githubusercontent.com/WizardOfXerox/WOX-Tadami-Extensions/main/apks/manga/index.min.json",
                 builtIn = true
+            ),
+            ExtensionRepository(
+                name = "Hycnyl · Extensiones en español",
+                url = "https://raw.githubusercontent.com/Hycnyl/mihon_extensions/repo/index.min.json",
+                builtIn = true
+            ),
+            ExtensionRepository(
+                name = "GeorgyDesign · Archivo comunitario",
+                url = "https://raw.githubusercontent.com/GeorgyDesign/mihon-extensions/repo/index.min.json",
+                builtIn = true
+            ),
+            ExtensionRepository(
+                name = "MiguelMA3 · Archivo comunitario",
+                url = "https://raw.githubusercontent.com/MiguelMA3/mihon-extensions/mypack/index.min.json",
+                builtIn = true
             )
         )
         const val MAX_INDEX_BYTES = 3_145_728

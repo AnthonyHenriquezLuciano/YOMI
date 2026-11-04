@@ -11,11 +11,18 @@ enum class ReadingMode(val label: String) {
     LTR("Páginas · izquierda a derecha"),
     VERTICAL("Desplazamiento vertical")
 }
+data class CatalogTag(
+    val id: String,
+    val label: String,
+    val group: String = "genre"
+)
+
 data class Work(
     val id: String,
     val sourceId: String,
     val title: String,
     val description: String = "",
+    val descriptionLanguage: String = "es",
     val coverUrl: String = "",
     val format: WorkFormat = WorkFormat.OTHER,
     val language: String = "",
@@ -23,7 +30,11 @@ data class Work(
     val longStrip: Boolean = false,
     val status: String = "",
     val catalogUrl: String = "",
-    val catalogOnly: Boolean = false
+    val catalogOnly: Boolean = false,
+    val tags: List<CatalogTag> = emptyList(),
+    val chapterCount: Int = -1,
+    val demographic: String = "",
+    val year: Int = 0
 ) {
     val key: String get() = sourceId + ":" + id
     fun defaultMode(): ReadingMode = when {
@@ -69,21 +80,47 @@ data class SearchFilters(
     val translatedLanguage: String? = "es",
     val sort: CatalogSort = CatalogSort.UPDATED,
     val page: Int = 0,
-    val pageSize: Int = 30
+    val pageSize: Int = 20,
+    val includedTags: Set<String> = emptySet(),
+    val excludedTags: Set<String> = emptySet(),
+    val includeTagsMode: String = "AND",
+    val excludeTagsMode: String = "OR",
+    val demographic: String? = null,
+    val year: Int? = null,
+    val allowSuggestive: Boolean = true,
+    val sourceIds: Set<String> = setOf("mangadex", "local"),
+    val verifyChapters: Boolean = true
 ) {
     init {
         require(page >= 0)
         require(pageSize in 1..100)
+        require(year == null || year in 1900..2100)
+        require(includeTagsMode in listOf("AND", "OR"))
+        require(excludeTagsMode in listOf("AND", "OR"))
     }
     fun activeCount(): Int =
-        listOfNotNull(format, status).size +
-            if (sort != CatalogSort.UPDATED) 1 else 0
+        listOfNotNull(format, status, demographic, year).size +
+            includedTags.size + excludedTags.size +
+            (if (sort != CatalogSort.UPDATED) 1 else 0) +
+            (if (!allowSuggestive) 1 else 0) +
+            (if (sourceIds != setOf("mangadex", "local")) 1 else 0)
 }
+
+data class SourceSearchPage(
+    val works: List<Work>,
+    val hasMore: Boolean = false
+)
 
 interface ContentSource {
     val id: String
     val name: String
     suspend fun search(query: String, filters: SearchFilters = SearchFilters()): List<Work>
+    suspend fun searchPage(
+        query: String, filters: SearchFilters = SearchFilters()
+    ): SourceSearchPage {
+        val result = search(query, filters)
+        return SourceSearchPage(result, result.size >= filters.pageSize)
+    }
     suspend fun chapters(work: Work): List<Chapter>
     suspend fun pages(chapter: Chapter): List<String>
 }
@@ -92,6 +129,23 @@ fun chaptersForBulkDownload(chapters: List<Chapter>): List<Chapter> =
     chapters.asReversed().distinctBy {
         if (it.number.isBlank()) it.id else it.volume + "|" + it.number
     }
+
+fun safeText(value: String?): String {
+    val text = value?.trim().orEmpty()
+    return if (text.equals("null", true) ||
+        text.equals("undefined", true) || text == "-" || text == "N/A") "" else text
+}
+
+fun displayChapterTitle(number: String?, title: String?): String {
+    val n = safeText(number)
+    val t = safeText(title)
+    return when {
+        n.isNotBlank() && t.isNotBlank() -> "Capítulo " + n + " · " + t
+        n.isNotBlank() -> "Capítulo " + n
+        t.isNotBlank() -> t
+        else -> "Capítulo especial"
+    }
+}
 
 fun normalizedTitle(title: String): String {
     val clean = Normalizer.normalize(title.lowercase(Locale.ROOT), Normalizer.Form.NFD)

@@ -36,6 +36,16 @@ class YomiStore(private val context: Context) {
     private fun workJson(work: Work) = JSONObject().apply {
         put("id", work.id); put("sourceId", work.sourceId)
         put("title", work.title); put("description", work.description)
+        put("descriptionLanguage", work.descriptionLanguage)
+        put("chapterCount", work.chapterCount)
+        put("year", work.year); put("demographic", work.demographic)
+        put("tags", JSONArray().apply {
+            work.tags.forEach { tag ->
+                put(JSONObject().apply {
+                    put("id", tag.id); put("label", tag.label); put("group", tag.group)
+                })
+            }
+        })
         put("cover", work.coverUrl); put("format", work.format.name)
         put("language", work.language); put("alternatives", JSONArray(work.alternativeTitles))
         put("longStrip", work.longStrip); put("status", work.status)
@@ -44,6 +54,7 @@ class YomiStore(private val context: Context) {
     private fun decodeWork(json: JSONObject): Work = Work(
         id = json.optString("id"), sourceId = json.optString("sourceId"),
         title = json.optString("title"), description = json.optString("description"),
+        descriptionLanguage = json.optString("descriptionLanguage", "es"),
         coverUrl = json.optString("cover"),
         format = runCatching { WorkFormat.valueOf(json.optString("format")) }.getOrDefault(WorkFormat.OTHER),
         language = json.optString("language"),
@@ -53,7 +64,20 @@ class YomiStore(private val context: Context) {
         longStrip = json.optBoolean("longStrip"),
         status = json.optString("status"),
         catalogUrl = json.optString("catalogUrl"),
-        catalogOnly = json.optBoolean("catalogOnly")
+        catalogOnly = json.optBoolean("catalogOnly"),
+        chapterCount = json.optInt("chapterCount", -1),
+        demographic = json.optString("demographic"),
+        year = json.optInt("year"),
+        tags = (json.optJSONArray("tags") ?: JSONArray()).let { arr ->
+            (0 until arr.length()).mapNotNull { i ->
+                arr.optJSONObject(i)?.let { t ->
+                    app.yomi.reader.core.CatalogTag(
+                        id = t.optString("id"), label = t.optString("label"),
+                        group = t.optString("group")
+                    )
+                }
+            }
+        }
     )
     private fun chapterJson(chapter: Chapter) = JSONObject().apply {
         put("id", chapter.id); put("sourceId", chapter.sourceId)
