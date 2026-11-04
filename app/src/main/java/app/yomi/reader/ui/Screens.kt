@@ -25,6 +25,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import app.yomi.reader.core.*
 import coil3.compose.AsyncImage
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import app.yomi.reader.R
 
 @Composable
 private fun Heading(title: String, subtitle: String = "") {
@@ -92,7 +95,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Black)
                     Text("Tu universo de lectura", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(Icons.Default.AutoStories, null, modifier = Modifier.size(32.dp))
+                Image(painterResource(R.drawable.yomi_mark), "Logo de YOMI", modifier = Modifier.size(40.dp))
             }
         }
         val inProgress = library.filter { progress(it) != null }
@@ -176,7 +179,7 @@ fun ExploreScreen(
                 Text("YOMI Global", style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
-                Text("· MangaDex", style = MaterialTheme.typography.labelSmall,
+                Text("· MangaDex + CBZ local", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
                 Text(results.size.toString() + " títulos", style = MaterialTheme.typography.labelSmall)

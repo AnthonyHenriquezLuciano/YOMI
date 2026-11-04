@@ -35,7 +35,8 @@ fun YomiApp() {
     val context = LocalContext.current
     val store = remember { YomiStore(context.applicationContext) }
     val remote = remember { MangaDexSource() }
-    val catalog = remember { GlobalCatalog(listOf(remote)) }
+    val localSource = remember { LocalArchiveSource(store) }
+    val catalog = remember { GlobalCatalog(listOf(remote, localSource)) }
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(Tab.HOME) }
     var dark by remember { mutableStateOf(false) }

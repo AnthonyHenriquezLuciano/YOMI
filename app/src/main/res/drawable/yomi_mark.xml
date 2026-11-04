@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- YOMI monogram: an open manga book, page fold and a speech balloon -->
+    <path android:fillColor="#111111"
+        android:pathData="M19,5 H89 Q103,5 103,19 V89 Q103,103 89,103 H19 Q5,103 5,89 V19 Q5,5 19,5 Z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M20,31 Q38,24 53,35 L54,78 Q37,69 20,73 Z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M57,35 Q72,24 89,31 V72 Q72,69 54,78 Z" />
+    <path android:fillColor="#111111"
+        android:pathData="M25,37 Q38,33 49,40 V50 Q37,46 25,47 Z" />
+    <path android:fillColor="#111111"
+        android:pathData="M25,53 Q39,51 49,56 V69 Q36,63 25,66 Z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M29,59 C29,55 33,54 38,54 C44,54 47,57 47,60 C47,63 43,65 38,65 L33,68 L35,64 C31,64 29,62 29,59 Z" />
+    <path android:fillColor="#111111"
+        android:pathData="M57,73 Q68,68 72,54 Q77,55 89,48 V56 Q81,60 77,61 Q71,71 57,73 Z" />
+</vector>

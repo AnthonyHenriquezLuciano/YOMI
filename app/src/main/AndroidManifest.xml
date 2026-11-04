@@ -5,6 +5,7 @@
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:label="YOMI"
+        android:icon="@drawable/yomi_mark"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="false"
         android:supportsRtl="true">
