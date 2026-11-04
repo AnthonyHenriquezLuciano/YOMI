@@ -45,14 +45,14 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
             query.isBlank() || it.name.contains(query, true) ||
                 it.repository.contains(query, true) || it.language.contains(query, true)
         }
-        .distinctBy { it.repository + it.name + it.language + it.originalUrl }
+        .distinctBy { normalizedTitle(it.name) + "|" + it.language }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, "Volver")
             }
-            Text("Repositorios", style = MaterialTheme.typography.titleLarge,
+            Text("Fuentes · Catálogo unificado", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             IconButton(onClick = { refresh() }, enabled = !refreshing) {
                 Icon(Icons.Default.Refresh, "Actualizar índices")
@@ -68,13 +68,13 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Info, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Directorio de extensiones", fontWeight = FontWeight.Bold)
+                        Text("Catálogo unificado de fuentes", fontWeight = FontWeight.Bold)
                     }
                     Text(
-                        "Mostramos únicamente las fuentes etiquetadas en español. " +
-                            "Los índices pertenecen a repositorios de Mihon/Tachiyomi. " +
-                            "Estas extensiones NO están instaladas ni son compatibles automáticamente " +
-                            "con el lector de YOMI. Solo se importan sus nombres e idiomas.",
+                        "Los índices se actualizan automáticamente al abrir esta pantalla. " +
+                            "Unificamos nombres repetidos de fuentes en español. " +
+                            "Las fuentes indexadas requieren un adaptador nativo compatible " +
+                            "antes de poder buscar y leer desde YOMI.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -142,7 +142,7 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
-            Text("Solo fuentes en español",
+            Text("Fuentes en español · Sin duplicados",
                 fontWeight = FontWeight.Medium,
                 style = MaterialTheme.typography.labelLarge)
             Text(sources.size.toString() + " entradas de directorio",
@@ -164,7 +164,7 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
                         Text(source.repository + " · " + source.language,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Solo índice · Requiere adaptador compatible",
+                        Text("Detectada · Requiere adaptador para lectura",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
