@@ -9,7 +9,9 @@ import org.json.JSONObject
 enum class ReadingShelf(val label: String) {
     PENDING("Pendiente"),
     READING("En lectura"),
-    COMPLETED("Completado")
+    PAUSED("Pausado"),
+    COMPLETED("Completado"),
+    REREADING("Releyendo")
 }
 enum class LibrarySort(val label: String) {
     ALPHABETICAL("Alfabéticamente"),
