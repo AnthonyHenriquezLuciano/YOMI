@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.yomi.reader.core.Chapter
+import app.yomi.reader.core.CatalogTag
 import app.yomi.reader.core.Work
 import coil3.compose.AsyncImage
 
@@ -31,7 +32,7 @@ import coil3.compose.AsyncImage
  * Portada inmersiva, sinopsis plegada y selección de capítulos para descarga.
  * Los tramos se expresan como posiciones desde el capítulo más antiguo.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun YomiDetailScreen(
     work: Work,
@@ -40,6 +41,7 @@ fun YomiDetailScreen(
     error: String,
     sourceChoices: List<Work>,
     onSourceChange: (Work) -> Unit,
+    onTagClick: (CatalogTag) -> Unit,
     onOpenExternal: (String) -> Unit,
     isSaved: Boolean,
     isRead: (String) -> Boolean,
@@ -283,32 +285,48 @@ fun YomiDetailScreen(
                             }
                         }
                     }
-                    if (work.description.isNotBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
-                        ) {
-                            Column {
-                                Row(
-                                    Modifier.fillMaxWidth()
-                                        .clickable { synopsisExpanded = !synopsisExpanded }
-                                        .padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Sinopsis", fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.weight(1f))
-                                    Text(if (synopsisExpanded) "Ocultar" else "Mostrar",
-                                        style = MaterialTheme.typography.labelMedium)
-                                    Spacer(Modifier.width(6.dp))
-                                    Icon(if (synopsisExpanded) Icons.Default.ExpandLess
-                                        else Icons.Default.ExpandMore,
-                                        if (synopsisExpanded) "Ocultar" else "Mostrar")
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                    ) {
+                        Column {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .clickable { synopsisExpanded = !synopsisExpanded }
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Sinopsis", fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f))
+                                Text(if (synopsisExpanded) "Ocultar" else "Mostrar",
+                                    style = MaterialTheme.typography.labelMedium)
+                                Spacer(Modifier.width(6.dp))
+                                Icon(if (synopsisExpanded) Icons.Default.ExpandLess
+                                    else Icons.Default.ExpandMore,
+                                    if (synopsisExpanded) "Ocultar" else "Mostrar")
+                            }
+                            if (synopsisExpanded) {
+                                Box(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+                                    SpanishSynopsis(work)
                                 }
-                                if (synopsisExpanded) Text(
-                                    work.description,
-                                    modifier = Modifier.padding(start = 14.dp,
-                                        end = 14.dp, bottom = 14.dp),
-                                    style = MaterialTheme.typography.bodyMedium
+                            }
+                        }
+                    }
+                    if (work.tags.isNotEmpty()) {
+                        Text("Etiquetas y géneros",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold)
+                        Text("Toca una etiqueta para encontrar obras similares.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(7.dp),
+                            verticalArrangement = Arrangement.spacedBy(0.dp)
+                        ) {
+                            work.tags.distinctBy { it.id }.forEach { tag ->
+                                SuggestionChip(
+                                    onClick = { onTagClick(tag) },
+                                    label = { Text(tag.label) }
                                 )
                             }
                         }
@@ -366,11 +384,14 @@ fun YomiDetailScreen(
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(chapter.title, style = MaterialTheme.typography.bodyMedium,
+                        Text(app.yomi.reader.core.safeText(chapter.title)
+                            .replace("Capítulo null", "Capítulo especial"),
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (isRead(chapter.id)) FontWeight.Normal
                             else FontWeight.SemiBold,
                             maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(chapter.scanlationGroup.ifBlank { "Traducción en español" },
+                        Text(app.yomi.reader.core.safeText(chapter.scanlationGroup)
+                            .ifBlank { "Traducción en español" },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

@@ -61,6 +61,9 @@ fun YomiApp() {
     var dark by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var filters by remember { mutableStateOf(SearchFilters()) }
+    var catalogTags by remember { mutableStateOf<List<CatalogTag>>(emptyList()) }
+    var catalogTagsError by remember { mutableStateOf("") }
+    var catalogTagsRefresh by remember { mutableIntStateOf(0) }
     var page by remember { mutableIntStateOf(0) }
     var hasMore by remember { mutableStateOf(false) }
     var searchJob by remember { mutableStateOf<Job?>(null) }
@@ -243,6 +246,14 @@ fun YomiApp() {
         }
     }
     LaunchedEffect(Unit) { search("") }
+    LaunchedEffect(catalogTagsRefresh) {
+        try {
+            catalogTags = remote.tags()
+            catalogTagsError = ""
+        } catch (e: Exception) {
+            catalogTagsError = "No se pudieron cargar los géneros y etiquetas."
+        }
+    }
     LaunchedEffect(selectedWork?.key, chapterRefresh) {
         val work = selectedWork ?: return@LaunchedEffect
         chapters = emptyList()
@@ -379,6 +390,12 @@ fun YomiApp() {
                         group.any { it.key == work.key }
                     } ?: listOf(work),
                     onSourceChange = { selectedWork = it },
+                    onTagClick = { tag ->
+                        selectedWork = null
+                        selectedChapter = null
+                        tab = Tab.EXPLORE
+                        search("", SearchFilters(includedTags = setOf(tag.id)))
+                    },
                     onOpenExternal = { link ->
                         if (link.startsWith("https://")) {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
@@ -432,10 +449,16 @@ fun YomiApp() {
                                 onOpen = { selectedWork = it },
                                 onExplore = { tab = Tab.EXPLORE }
                             )
-                            Tab.EXPLORE -> ExploreScreen(
-                                query = query, onQuery = { query = it },
-                                results = searchWorks, loading = searching,
-                                error = error, filters = filters,
+                            Tab.EXPLORE -> ExploreV2Screen(
+                                query = query,
+                                onQuery = { query = it },
+                                results = searchWorks,
+                                loading = searching,
+                                error = error,
+                                filters = filters,
+                                availableTags = catalogTags,
+                                tagsError = catalogTagsError,
+                                onRetryTags = { catalogTagsRefresh++ },
                                 hasMore = hasMore,
                                 onLoadMore = { search(loadMore = true) },
                                 onSearch = { search(query, filters) },
