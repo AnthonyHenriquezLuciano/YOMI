@@ -26,6 +26,7 @@ fun ExploreV2Screen(
     query: String, onQuery: (String) -> Unit, results: List<Work>,
     loading: Boolean, error: String, filters: SearchFilters,
     availableTags: List<CatalogTag>, tagsError: String, onRetryTags: () -> Unit,
+    onSources: () -> Unit,
     hasMore: Boolean, onLoadMore: () -> Unit,
     onSearch: () -> Unit, onFiltersChanged: (SearchFilters) -> Unit,
     onOpen: (Work) -> Unit
@@ -50,7 +51,11 @@ fun ExploreV2Screen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("YOMI Global", style = MaterialTheme.typography.labelSmall)
+                TextButton(onClick = onSources) {
+                    Icon(Icons.Default.Language, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(5.dp))
+                    Text("10 fuentes")
+                }
             }
             OutlinedTextField(
                 value = query, onValueChange = onQuery,

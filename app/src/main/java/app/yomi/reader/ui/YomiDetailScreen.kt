@@ -76,6 +76,7 @@ fun YomiDetailScreen(
     val sourceLabel = when (work.sourceId) {
         "mangadex" -> "MangaDex"
         "comick" -> "Comick · Catálogo"
+        "mangapdf" -> "MangaPDF · API"
         else -> "Archivo local"
     }
     if (downloadDialog) {
@@ -210,7 +211,11 @@ fun YomiDetailScreen(
                                 style = MaterialTheme.typography.bodySmall)
                             Text(sourceLabel, color = Color.White.copy(alpha = 0.80f),
                                 style = MaterialTheme.typography.labelMedium)
-                            Text(if (work.sourceId == "local") "Archivo importado" else "Traducción en español",
+                            Text(when (work.sourceId) {
+                                    "local" -> "Archivo importado"
+                                    "mangapdf" -> "Idioma por verificar"
+                                    else -> "Traducción en español"
+                                },
                                 color = Color.White.copy(alpha = 0.90f),
                                 style = MaterialTheme.typography.labelMedium)
                         }
@@ -316,7 +321,10 @@ fun YomiDetailScreen(
                         Text("Etiquetas y géneros",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold)
-                        Text("Toca una etiqueta para encontrar obras similares.",
+                        Text(
+                            if (work.sourceId == "mangadex")
+                                "Toca una etiqueta para encontrar obras similares."
+                            else "Etiquetas proporcionadas por la fuente.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FlowRow(
@@ -391,7 +399,10 @@ fun YomiDetailScreen(
                             else FontWeight.SemiBold,
                             maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(app.yomi.reader.core.safeText(chapter.scanlationGroup)
-                            .ifBlank { "Traducción en español" },
+                            .ifBlank {
+                                if (work.sourceId == "mangapdf") "Idioma sin verificar"
+                                else "Traducción en español"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

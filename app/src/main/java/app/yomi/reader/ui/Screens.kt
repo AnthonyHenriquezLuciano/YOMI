@@ -389,6 +389,7 @@ fun SettingsScreen(
     dark: Boolean, onDark: (Boolean) -> Unit, onImport: () -> Unit,
     libraryCount: Int, downloadCount: Int,
     onRepositories: () -> Unit,
+    onSources: () -> Unit,
     onCategories: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -424,6 +425,11 @@ fun SettingsScreen(
         Text("MangaDex · Lector integrado", fontWeight = FontWeight.Medium)
         Text("Comick · Catálogo pendiente de verificación de idioma español", fontWeight = FontWeight.Medium)
         Text("CBZ local · Importación desde el dispositivo", fontWeight = FontWeight.Medium)
+        OutlinedButton(onClick = onSources, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Language, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Abrir 10 fuentes conectadas")
+        }
         OutlinedButton(onClick = onRepositories, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.AccountTree, null)
             Spacer(Modifier.width(8.dp))
@@ -434,7 +440,7 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider()
         Text("Atribución y uso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("YOMI es un lector sin anuncios. El contenido remoto se consulta mediante la API de MangaDex. " +
+        Text("YOMI no incluye anuncios. MangaDex y MangaPDF usan APIs públicas; las demás fuentes se abren como sitios oficiales dentro de la app. " +
             "Las obras y traducciones pertenecen a sus respectivos autores y grupos. " +
             "Se respetan solicitudes de retirada y términos de cada proveedor.",
             style = MaterialTheme.typography.bodyMedium)

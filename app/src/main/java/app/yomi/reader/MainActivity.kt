@@ -55,7 +55,8 @@ fun YomiApp() {
     val remote = remember { MangaDexSource() }
     val localSource = remember { LocalArchiveSource(store) }
     val comick = remember { ComickCatalogSource() }
-    val catalog = remember { GlobalCatalog(listOf(remote, comick, localSource)) }
+    val mangaPdf = remember { MangaPdfSource() }
+    val catalog = remember { GlobalCatalog(listOf(remote, comick, mangaPdf, localSource)) }
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(Tab.HOME) }
     var dark by remember { mutableStateOf(false) }
@@ -72,6 +73,9 @@ fun YomiApp() {
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     var showRepositories by remember { mutableStateOf(false) }
+    var showSources by remember { mutableStateOf(false) }
+    var showMangaPdf by remember { mutableStateOf(false) }
+    var webSource by remember { mutableStateOf<ConnectedSource?>(null) }
     var selectedWork by remember { mutableStateOf<Work?>(null) }
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
@@ -311,13 +315,17 @@ fun YomiApp() {
         }
     }
     BackHandler(enabled = showRepositories || showCategorySettings || showHistory ||
+        showSources || showMangaPdf || webSource != null ||
         selectedChapter != null || selectedWork != null || tab != Tab.HOME) {
         when {
+            selectedChapter != null -> { selectedChapter = null; refreshLocal() }
+            selectedWork != null -> { selectedWork = null; error = "" }
+            webSource != null -> webSource = null
+            showMangaPdf -> showMangaPdf = false
+            showSources -> showSources = false
             showHistory -> showHistory = false
             showCategorySettings -> showCategorySettings = false
             showRepositories -> showRepositories = false
-            selectedChapter != null -> { selectedChapter = null; refreshLocal() }
-            selectedWork != null -> { selectedWork = null; error = "" }
             else -> tab = Tab.HOME
         }
     }
@@ -391,10 +399,12 @@ fun YomiApp() {
                     } ?: listOf(work),
                     onSourceChange = { selectedWork = it },
                     onTagClick = { tag ->
-                        selectedWork = null
-                        selectedChapter = null
-                        tab = Tab.EXPLORE
-                        search("", SearchFilters(includedTags = setOf(tag.id)))
+                        if (work.sourceId == "mangadex") {
+                            selectedWork = null
+                            selectedChapter = null
+                            tab = Tab.EXPLORE
+                            search("", SearchFilters(includedTags = setOf(tag.id)))
+                        }
                     },
                     onOpenExternal = { link ->
                         if (link.startsWith("https://")) {
@@ -418,6 +428,20 @@ fun YomiApp() {
                     downloading = downloading,
                     downloadStatus = downloadStatus,
                     onCancelDownloads = { downloadJob?.cancel() }
+                )
+                webSource != null -> SourceWebsiteScreen(
+                    source = webSource!!,
+                    onBack = { webSource = null }
+                )
+                showMangaPdf -> MangaPdfBrowserScreen(
+                    source = mangaPdf,
+                    onBack = { showMangaPdf = false },
+                    onOpen = { selectedWork = it }
+                )
+                showSources -> ConnectedSourcesScreen(
+                    onBack = { showSources = false },
+                    onNative = { showMangaPdf = true },
+                    onWeb = { webSource = it }
                 )
                 else -> Scaffold(
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -459,6 +483,7 @@ fun YomiApp() {
                                 availableTags = catalogTags,
                                 tagsError = catalogTagsError,
                                 onRetryTags = { catalogTagsRefresh++ },
+                                onSources = { showSources = true },
                                 hasMore = hasMore,
                                 onLoadMore = { search(loadMore = true) },
                                 onSearch = { search(query, filters) },
@@ -504,6 +529,7 @@ fun YomiApp() {
                                 libraryCount = library.size,
                                 downloadCount = downloads.size,
                                 onRepositories = { showRepositories = true },
+                                onSources = { showSources = true },
                                 onCategories = { showCategorySettings = true }
                             )
                         }
