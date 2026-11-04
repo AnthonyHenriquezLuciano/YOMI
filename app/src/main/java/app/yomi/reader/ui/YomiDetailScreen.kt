@@ -1,6 +1,7 @@
 package app.yomi.reader.ui
 
 import androidx.compose.foundation.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -296,7 +297,7 @@ fun YomiDetailScreen(
                         shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
                     ) {
-                        Column {
+                        Column(Modifier.animateContentSize()) {
                             Row(
                                 Modifier.fillMaxWidth()
                                     .clickable { synopsisExpanded = !synopsisExpanded }

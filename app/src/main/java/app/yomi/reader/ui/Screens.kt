@@ -74,13 +74,39 @@ fun WorkCover(work: Work, modifier: Modifier = Modifier) {
 
 @Composable
 fun WorkCard(work: Work, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.clickable(onClick = onOpen), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        WorkCover(work, Modifier.fillMaxWidth().aspectRatio(0.70f))
-        Text(work.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        Text(work.format.label + if (work.catalogOnly) " · Catálogo" else "",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(
+        modifier.clickable(onClick = onOpen),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(0.69f).clip(RoundedCornerShape(14.dp))) {
+            WorkCover(work, Modifier.fillMaxSize())
+            if (work.chapterCount > 0) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(7.dp),
+                    shape = RoundedCornerShape(7.dp),
+                    color = androidx.compose.ui.graphics.Color.Black.copy(alpha = .76f)
+                ) {
+                    Text(work.chapterCount.toString() + " caps.",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = androidx.compose.ui.graphics.Color.White)
+                }
+            }
+        }
+        Text(
+            work.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(work.format.label, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (work.status == "completed") {
+                Spacer(Modifier.width(5.dp))
+                Text("· Finalizado", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 
