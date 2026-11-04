@@ -58,13 +58,15 @@ class YomiStore(private val context: Context) {
     private fun chapterJson(chapter: Chapter) = JSONObject().apply {
         put("id", chapter.id); put("sourceId", chapter.sourceId)
         put("workKey", chapter.workKey); put("title", chapter.title)
-        put("number", chapter.number); put("language", chapter.language)
+        put("number", chapter.number); put("volume", chapter.volume)
+        put("language", chapter.language)
         put("scanlationGroup", chapter.scanlationGroup); put("publishedAt", chapter.publishedAt)
     }
     private fun decodeChapter(json: JSONObject) = Chapter(
         id = json.optString("id"), workKey = json.optString("workKey"),
         sourceId = json.optString("sourceId"), title = json.optString("title"),
-        number = json.optString("number"), language = json.optString("language"),
+        number = json.optString("number"), volume = json.optString("volume"),
+        language = json.optString("language"),
         scanlationGroup = json.optString("scanlationGroup"),
         publishedAt = json.optString("publishedAt")
     )

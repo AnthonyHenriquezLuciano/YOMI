@@ -39,6 +39,7 @@ data class Chapter(
     val sourceId: String,
     val title: String,
     val number: String = "",
+    val volume: String = "",
     val language: String = "",
     val scanlationGroup: String = "",
     val publishedAt: String = ""
@@ -86,6 +87,11 @@ interface ContentSource {
     suspend fun chapters(work: Work): List<Chapter>
     suspend fun pages(chapter: Chapter): List<String>
 }
+
+fun chaptersForBulkDownload(chapters: List<Chapter>): List<Chapter> =
+    chapters.asReversed().distinctBy {
+        if (it.number.isBlank()) it.id else it.volume + "|" + it.number
+    }
 
 fun normalizedTitle(title: String): String {
     val clean = Normalizer.normalize(title.lowercase(Locale.ROOT), Normalizer.Form.NFD)

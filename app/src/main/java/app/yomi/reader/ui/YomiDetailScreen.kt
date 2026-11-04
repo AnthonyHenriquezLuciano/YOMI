@@ -58,7 +58,7 @@ fun YomiDetailScreen(
     var first by remember(work.key) { mutableStateOf("1") }
     var last by remember(work.key) { mutableStateOf("10") }
     val downloadable = remember(chapters) {
-        chapters.asReversed().distinctBy { it.number.ifBlank { it.id } }
+        app.yomi.reader.core.chaptersForBulkDownload(chapters)
     }
     val start = first.toIntOrNull()
     val finish = last.toIntOrNull()
@@ -208,7 +208,8 @@ fun YomiDetailScreen(
                                 style = MaterialTheme.typography.bodySmall)
                             Text(sourceLabel, color = Color.White.copy(alpha = 0.80f),
                                 style = MaterialTheme.typography.labelMedium)
-                            Text("Edición en español", color = Color.White.copy(alpha = 0.90f),
+                            Text(if (work.sourceId == "local") "Archivo importado" else "Traducción en español",
+                                color = Color.White.copy(alpha = 0.90f),
                                 style = MaterialTheme.typography.labelMedium)
                         }
                     }
@@ -219,22 +220,22 @@ fun YomiDetailScreen(
                     Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(13.dp)
                 ) {
-                    Row(Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Column(Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = onBookmark,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(if (isSaved) Icons.Default.Bookmark
                                 else Icons.Default.BookmarkAdd, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(if (isSaved) "En biblioteca" else "Añadir a biblioteca",
+                            Text(if (isSaved) "Añadido a la biblioteca" else "Añadir a la biblioteca",
                                 maxLines = 1)
                         }
                         OutlinedButton(
                             onClick = { downloadDialog = true },
-                            modifier = Modifier.weight(0.85f),
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             enabled = !work.catalogOnly && work.sourceId != "local" &&
                                 downloadable.isNotEmpty() && !downloading

@@ -432,7 +432,7 @@ fun SettingsScreen(
             "Las obras y traducciones pertenecen a sus respectivos autores y grupos. " +
             "Se respetan solicitudes de retirada y términos de cada proveedor.",
             style = MaterialTheme.typography.bodyMedium)
-        Text("YOMI · Versión 0.2.0", style = MaterialTheme.typography.labelSmall,
+        Text("YOMI · Versión 0.3.0", style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

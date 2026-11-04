@@ -1,72 +1,43 @@
-# YOMI Global · Android 0.2.0
+# YOMI Global · Android 0.3.0
 
-Aplicación nativa Kotlin/Jetpack Compose para manga, manhwa y manhua.
-Explorar combina fuentes compatibles en un catálogo global, con lector adaptable, biblioteca,
-descargas y archivos CBZ locales.
+Lector nativo Kotlin/Jetpack Compose de manga, manhwa y manhua en español.
 
-## Integraciones de contenido
+## Diseño y experiencia
 
-| Integración | Búsqueda | Capítulos | Lectura dentro de YOMI |
-|---|---|---|---|
-| MangaDex | Sí, por API pública | Sí | Sí, cuando el proveedor ofrece páginas |
-| Comick | Sí, catálogo público | No habilitado | No, abre su sitio externo |
-| CBZ local | Sí, títulos importados | Sí | Sí, sin conexión |
+- **Idioma:** búsqueda MangaDex filtrada a obras con capítulos traducidos al español; la lista de capítulos solicita exclusivamente `es`. El idioma *original* de la obra puede ser japonés, coreano o chino.
+- **Extensiones:** el directorio Keiyoushi/Nyora/WOX solo indexa fuentes publicadas como `es` o `es-*`; esas extensiones no se instalan ni se ejecutan en YOMI.
+- **Comick:** sigue siendo un adaptador de catálogo, pero se omite cuando el filtro obligatorio es español, porque el endpoint consultado no verifica traducciones en español.
+- **Detalle renovado:** portada difuminada como fondo superior, contraste de texto, sinopsis plegada, botones grandes y capítulos con tipografía simplificada.
+- **Controles:** **Añadir a la biblioteca** (o quitar), **Descargar** con `Completo` (todos los capítulos que cargó la lista) o `Por tramo` (posiciones del más antiguo al más reciente).
+- **Actualización:** arrastra hacia abajo en el detalle o pulsa actualizar para volver a solicitar los capítulos.
+- **Navegación:** botón físico/gesto Atrás de Android para cerrar lector, detalle o directorio; barra de estado y navegación respetadas con insets de Compose.
+- **Lector:** páginas RTL/LTR, lectura webtoon vertical, progreso y descargas CBZ offline.
 
-**No hay un conector universal que permita buscar y leer directamente desde todas las webs.**
-Cada proveedor necesita una API compatible o un adaptador con mantenimiento y permisos.
+## Restricciones honestas
 
-## Directorio de repositorios de extensiones
+La descarga «Completo» abarca únicamente los capítulos cargados en la lista de detalle.
+El proveedor MangaDex actualmente limita esa consulta a tres páginas de 100, por lo que
+las obras con más de 300 entradas requerirán ampliar su paginación en una versión posterior.
+Las descargas de varios capítulos se hacen secuencialmente, se pueden cancelar y funcionan
+**mientras la app permanezca abierta**, no como trabajos persistentes del sistema operativo.
+Los capítulos que ya están descargados se omiten.
 
-En **Ajustes → Explorar repositorios** se pueden consultar *metadatos* de repositorios
-Mihon/Tachiyomi. Están precargados:
+**MangaDex** es la fuente online de lectura actualmente integrada. Los archivos CBZ
+importados también pueden leerse. Comick se limita a catálogo y enlace externo, sin
+garantía de capítulos en español. La presencia de una fuente en los índices externos
+no significa que sea funcional en el buscador o lector.
 
-- Keiyoushi (su índice público actual puede mostrar únicamente mensajes de actualización de app).
-- Nyora SFW (el índice puede agrupar cientos de fuentes bajo una sola extensión sin listar cada fuente).
-- WOX Tadami manga (indexación de nombres, idiomas y enlaces declarados por el repositorio).
+## Compilación
 
-También se pueden añadir índices `index.min.json` y `index.json` alojados en GitHub o
-GitHub Pages mediante HTTPS. Se filtran las entradas marcadas como NSFW por el índice.
+Ve a [GitHub Actions](https://github.com/AnthonyHenriquezLuciano/YOMI/actions) y descarga
+el artefacto **YOMI-debug-apk** de la última ejecución aprobada.
+La compilación ejecuta `gradle :app:assembleDebug :app:testDebugUnitTest`.
 
-**AVISO: solo se leen datos JSON.** Los índices pueden ser erróneos u obsoletos.
-YOMI **no instala ni ejecuta** las APK de los repositorios.
-Esas fuentes **NO se añaden al buscador de títulos** por el hecho de aparecer en el directorio.
-Las extensiones son código Android de terceros y requerirían un motor aislado,
-análisis de seguridad y compatibilidad antes de utilizarse como fuentes funcionales.
+Android 8.0+, JDK 17, SDK Android 37, Gradle 9.4.1.
+Versión de pruebas, no distribuida como release firmada.
 
-Validaciones de seguridad: HTTPS, lista de dominios permitidos, sin redirecciones,
-máximo 3 MiB por índice y sin credenciales embebidas ni descarga de ejecutables.
+## Próximas mejoras
 
-## Funciones de YOMI 0.2
-
-- Inicio, Explorar, Biblioteca, Descargas, Ajustes y directorio de repositorios.
-- Búsqueda global de MangaDex y catálogo de Comick con aislamiento de errores.
-- Búsqueda paginada, filtros y resultados por formato.
-- Sinopsis plegada por defecto.
-- Lector vertical, RTL y LTR con progreso persistente y gestos.
-- Descargas privadas por capítulo, importador CBZ y lectura local.
-- Catálogos alternativos enlazados a una misma obra sin perder la procedencia.
-- Créditos de MangaDex y grupos de traducción.
-
-## Compilar
-
-GitHub Actions: `Android APK`. El workflow ejecuta
-`gradle :app:assembleDebug :app:testDebugUnitTest` con JDK 17 y Android SDK.
-
-[Ver compilaciones](https://github.com/AnthonyHenriquezLuciano/YOMI/actions).
-Descarga el artefacto `YOMI-debug-apk` de la última ejecución **correcta**.
-
-Para compilar localmente se necesitan Gradle 9.4.1, Android Gradle Plugin 9.2.1
-y plataforma Android 37. La versión 0.2.0 es de pruebas, no release firmada.
-
-## Pendientes
-
-- Verificar comportamiento de Comick con su API en Android y completar lector solo si su
-  API pública lo permite.
-- Habilitar otras fuentes mediante conectores dedicados.
-- Opciones para activar/desactivar conectores por usuario.
-- Sincronización de lectura y migración de respaldos Mihon.
-- Descargas resilientes, manejo de 429 y pruebas de memoria en webtoons largos.
-- Tests en teléfonos y tabletas reales.
-
-No afiliado a Mihon, MangaDex, Comick, Keiyoushi ni otros proveedores.
-Se respetan sus políticas, licencias y derechos de autor.
+Paginación completa del feed, descargas persistentes con WorkManager, adaptación para
+pantallas de diferentes tamaños, pruebas en dispositivos reales, respaldo, sincronización
+y más conectores autorizados de contenido.

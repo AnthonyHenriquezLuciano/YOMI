@@ -156,6 +156,7 @@ class MangaDexSource : ContentSource {
                         title = "Capítulo " + (number.ifBlank { "?" }) +
                             (if (chapterTitle.isBlank()) "" else " · " + chapterTitle),
                         number = number,
+                        volume = attr.optString("volume"),
                         language = attr.optString("translatedLanguage"),
                         scanlationGroup = group,
                         publishedAt = attr.optString("publishAt")

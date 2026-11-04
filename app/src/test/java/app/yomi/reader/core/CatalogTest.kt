@@ -5,6 +5,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CatalogTest {
+    @Test fun completeDownloadsKeepDifferentVolumes() {
+        val first = Chapter("c1", "w", "md", "Capítulo 1", number = "1", volume = "1")
+        val repeated = Chapter("c2", "w", "md", "Capítulo 1", number = "1", volume = "1")
+        val nextVolume = Chapter("c3", "w", "md", "Capítulo 1", number = "1", volume = "2")
+        val selected = chaptersForBulkDownload(listOf(first, repeated, nextVolume))
+        assertEquals(2, selected.size)
+        assertEquals(setOf("1", "2"), selected.map { it.volume }.toSet())
+    }
+
     @Test fun spanishIsAlwaysTheDefaultCatalogLanguage() {
         assertEquals("es", SearchFilters().translatedLanguage)
     }
@@ -15,7 +24,7 @@ class CatalogTest {
             format = WorkFormat.MANHWA, translatedLanguage = "es",
             status = "completed", sort = CatalogSort.POPULAR
         )
-        assertEquals(4, applied.activeCount())
+        assertEquals(3, applied.activeCount())
         assertEquals("completed", applied.copy(page = 2).status)
         assertEquals(2, applied.copy(page = 2).page)
     }
