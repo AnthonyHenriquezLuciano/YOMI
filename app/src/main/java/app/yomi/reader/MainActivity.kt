@@ -139,6 +139,11 @@ fun YomiApp() {
         val downloadedIds = downloads.map { it.chapter.id }.toSet()
         library.map { libraryMeta.item(it, store, downloadedIds) }
     }
+    val historyItems = remember(library, downloads, libraryRevision) {
+        val allWorks = (library + store.historyWorks()).distinctBy { it.key }
+        val downloadedIds = downloads.map { it.chapter.id }.toSet()
+        allWorks.map { libraryMeta.item(it, store, downloadedIds) }
+    }
     fun queueDownloadBatch(work: Work, selection: List<Chapter>) {
         if (downloading || selection.isEmpty() || work.catalogOnly) return
         downloading = true
@@ -335,7 +340,7 @@ fun YomiApp() {
                     }
                 )
                 showHistory -> ReadingHistoryScreen(
-                    items = libraryItems,
+                    items = historyItems,
                     onBack = { showHistory = false },
                     onResume = { work ->
                         showHistory = false

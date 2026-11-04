@@ -88,7 +88,7 @@ class YomiStore(private val context: Context) {
         ReadingProgress(value.optString("chapterId"), value.optInt("pageIndex"),
             value.optLong("updatedAt"))
     }
-    fun setProgress(work: Work, chapter: Chapter, index: Int) =
+    fun setProgress(work: Work, chapter: Chapter, index: Int) {
         update("progress") {
             it.put(work.key, JSONObject().apply {
                 put("chapterId", chapter.id)
@@ -96,6 +96,15 @@ class YomiStore(private val context: Context) {
                 put("updatedAt", System.currentTimeMillis())
             })
         }
+        // Persist work metadata independently of the user's saved library.
+        update("historyWorks") { it.put(work.key, workJson(work)) }
+    }
+
+    fun historyWorks(): List<Work> = synchronized(lock) {
+        val root = readObject("historyWorks")
+        root.keys().asSequence().mapNotNull { root.optJSONObject(it)?.let(::decodeWork) }
+            .toList()
+    }
     fun isRead(chapterId: String): Boolean = synchronized(lock) {
         readObject("read").optBoolean(chapterId, false)
     }

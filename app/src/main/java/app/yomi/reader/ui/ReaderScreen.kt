@@ -62,6 +62,9 @@ fun ReaderScreen(
     val scrollState = androidx.compose.runtime.key(chapter.id) {
         rememberLazyListState(initialFirstVisibleItemIndex = pageIndex.coerceAtLeast(0))
     }
+    LaunchedEffect(chapter.id, urls.size) {
+        if (urls.isNotEmpty()) onProgress(pageIndex.coerceIn(0, urls.lastIndex))
+    }
     LaunchedEffect(chapter.id, mode, urls.size) {
         if (mode == ReadingMode.VERTICAL && urls.isNotEmpty()) {
             snapshotFlow { scrollState.firstVisibleItemIndex }
