@@ -75,7 +75,6 @@ fun YomiApp() {
     var sourceVariants by remember { mutableStateOf<Map<String, List<Work>>>(emptyMap()) }
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    var showRepositories by remember { mutableStateOf(false) }
     var showSources by remember { mutableStateOf(false) }
     var selectedWork by remember { mutableStateOf<Work?>(null) }
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
@@ -315,7 +314,7 @@ fun YomiApp() {
             }
         }
     }
-    BackHandler(enabled = showRepositories || showCategorySettings || showHistory ||
+    BackHandler(enabled = showCategorySettings || showHistory ||
         showSources ||
         selectedChapter != null || selectedWork != null || tab != Tab.HOME) {
         when {
@@ -324,7 +323,6 @@ fun YomiApp() {
             showSources -> showSources = false
             showHistory -> showHistory = false
             showCategorySettings -> showCategorySettings = false
-            showRepositories -> showRepositories = false
             else -> tab = Tab.HOME
         }
     }
@@ -364,9 +362,6 @@ fun YomiApp() {
                         showHistory = false
                         resume(work)
                     }
-                )
-                showRepositories -> RepositoryDirectoryScreen(
-                    onBack = { showRepositories = false }
                 )
                 work != null && chapter != null -> ReaderScreen(
                     work = work, chapter = chapter, urls = pages,
@@ -527,7 +522,6 @@ fun YomiApp() {
                                 },
                                 libraryCount = library.size,
                                 downloadCount = downloads.size,
-                                onRepositories = { showRepositories = true },
                                 onSources = { showSources = true },
                                 onCategories = { showCategorySettings = true }
                             )

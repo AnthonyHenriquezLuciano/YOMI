@@ -326,8 +326,13 @@ fun selectLibrary(
         LibraryGroup.CATEGORY ->
             item.categories.takeIf { it.isNotEmpty() }?.sorted() ?: listOf("Sin categoría")
         LibraryGroup.SOURCE -> listOf(when (item.work.sourceId) {
-            "mangadex" -> "MangaDex"; "comick" -> "Comick"
-            else -> "Archivos locales"
+            "mangadex" -> "MangaDex"
+            "comick" -> "Comick"
+            "mangapdf" -> "MangaPDF"
+            "local" -> "Archivos locales"
+            else -> app.yomi.reader.core.BundledMadaraSources.configs
+                .firstOrNull { item.work.sourceId == "mdr_" + it.id }
+                ?.title ?: "Fuente integrada"
         })
         LibraryGroup.STATUS -> listOf(item.shelf.label)
         LibraryGroup.NONE -> listOf("")

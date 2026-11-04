@@ -388,7 +388,6 @@ fun DownloadsScreen(
 fun SettingsScreen(
     dark: Boolean, onDark: (Boolean) -> Unit, onImport: () -> Unit,
     libraryCount: Int, downloadCount: Int,
-    onRepositories: () -> Unit,
     onSources: () -> Unit,
     onCategories: () -> Unit
 ) {
@@ -429,11 +428,6 @@ fun SettingsScreen(
             Icon(Icons.Default.Language, null)
             Spacer(Modifier.width(8.dp))
             Text("Fuentes incluidas en la APK")
-        }
-        OutlinedButton(onClick = onRepositories, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.AccountTree, null)
-            Spacer(Modifier.width(8.dp))
-            Text("Explorar repositorios de extensiones")
         }
         Text("La biblioteca de fuentes se incluye en la instalación. No se necesitan APK adicionales ni navegador integrado.",
             style = MaterialTheme.typography.bodySmall,

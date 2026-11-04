@@ -77,7 +77,9 @@ fun YomiDetailScreen(
         "mangadex" -> "MangaDex"
         "comick" -> "Comick · Catálogo"
         "mangapdf" -> "MangaPDF · API"
-        else -> "Archivo local"
+        "local" -> "Archivo local"
+        else -> app.yomi.reader.core.BundledMadaraSources.configs
+            .firstOrNull { work.sourceId == "mdr_" + it.id }?.title ?: "Fuente nativa"
     }
     if (downloadDialog) {
         AlertDialog(
