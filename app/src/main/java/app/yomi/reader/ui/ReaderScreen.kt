@@ -19,6 +19,10 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import app.yomi.reader.core.BundledMadaraSources
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import android.app.Activity
+import androidx.compose.ui.platform.LocalView
+import app.yomi.reader.data.YomiUiPreferences
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -31,6 +35,7 @@ import app.yomi.reader.core.Work
 import app.yomi.reader.data.YomiStore
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 @Composable
@@ -65,6 +70,7 @@ fun ReaderScreen(
     loading: Boolean,
     error: String,
     stored: YomiStore,
+    preferences: YomiUiPreferences,
     onBack: () -> Unit,
     onModeSelected: (ReadingMode) -> Unit,
     onProgress: (Int) -> Unit,
@@ -73,10 +79,38 @@ fun ReaderScreen(
     hasNext: Boolean,
     onDownload: () -> Unit
 ) {
+    val globalMode = if (work.longStrip || work.format.name in setOf("MANHWA", "MANHUA"))
+        preferences.defaultWebtoonMode else preferences.defaultMangaMode
     var mode by remember(work.key) {
-        mutableStateOf(stored.overrideMode(work) ?: work.defaultMode())
+        mutableStateOf(stored.overrideMode(work) ?: globalMode)
+    }
+    val view = LocalView.current
+    val activity = LocalContext.current as? Activity
+    DisposableEffect(view, activity, preferences.keepScreenOn, preferences.readerBrightness) {
+        val previousKeepAwake = view.keepScreenOn
+        val previousBrightness = activity?.window?.attributes?.screenBrightness
+        view.keepScreenOn = preferences.keepScreenOn
+        if (preferences.readerBrightness >= 0f && activity != null) {
+            val attrs = activity.window.attributes
+            attrs.screenBrightness = preferences.readerBrightness.coerceIn(.05f, 1f)
+            activity.window.attributes = attrs
+        }
+        onDispose {
+            view.keepScreenOn = previousKeepAwake
+            if (previousBrightness != null) {
+                val attrs = activity.window.attributes
+                attrs.screenBrightness = previousBrightness
+                activity.window.attributes = attrs
+            }
+        }
     }
     var controlsVisible by remember(chapter.id) { mutableStateOf(false) }
+    LaunchedEffect(controlsVisible) {
+        if (controlsVisible) {
+            delay(6000L)
+            controlsVisible = false
+        }
+    }
     var menuOpen by remember { mutableStateOf(false) }
     val progress = remember(chapter.id) { stored.progress(work) }
     var pageIndex by remember(chapter.id) {
@@ -117,7 +151,7 @@ fun ReaderScreen(
         Modifier.fillMaxSize().background(Color.Black)
             .pointerInput(mode, urls.size, pageIndex) {
                 detectTapGestures { position ->
-                    if (mode == ReadingMode.VERTICAL || urls.isEmpty()) {
+                    if (!preferences.tapZones || mode == ReadingMode.VERTICAL || urls.isEmpty()) {
                         controlsVisible = !controlsVisible
                     } else {
                         when {
@@ -151,7 +185,9 @@ fun ReaderScreen(
                         model = nativePageRequest(url, chapter.sourceId),
                         contentDescription = "Página " + (index + 1),
                         contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 200.dp)
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = preferences.margins.dp)
+                            .defaultMinSize(minHeight = 200.dp)
                     )
                 }
                 item {
@@ -172,6 +208,7 @@ fun ReaderScreen(
                 ),
                 contentDescription = "Página " + (pageIndex + 1),
                 modifier = Modifier.fillMaxSize()
+                    .padding(horizontal = preferences.margins.dp)
                     .pointerInput(mode, urls.size, pageIndex) {
                         var dragged = 0f
                         detectHorizontalDragGestures(
@@ -194,6 +231,14 @@ fun ReaderScreen(
                         )
                     },
                 contentScale = ContentScale.Fit
+            )
+        }
+        if (preferences.prefetch && mode != ReadingMode.VERTICAL && urls.isNotEmpty() &&
+            pageIndex + 1 in urls.indices) {
+            AsyncImage(
+                model = nativePageRequest(urls[pageIndex + 1], chapter.sourceId),
+                contentDescription = null,
+                modifier = Modifier.align(Alignment.BottomStart).size(1.dp).alpha(0f)
             )
         }
         if (controlsVisible) {
