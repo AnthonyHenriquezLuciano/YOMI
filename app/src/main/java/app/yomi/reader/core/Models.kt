@@ -65,7 +65,7 @@ enum class CatalogSort(val label: String, val apiKey: String, val direction: Str
 data class SearchFilters(
     val format: WorkFormat? = null,
     val status: String? = null,
-    val translatedLanguage: String? = null,
+    val translatedLanguage: String? = "es",
     val sort: CatalogSort = CatalogSort.UPDATED,
     val page: Int = 0,
     val pageSize: Int = 30
@@ -75,7 +75,7 @@ data class SearchFilters(
         require(pageSize in 1..100)
     }
     fun activeCount(): Int =
-        listOfNotNull(format, status, translatedLanguage).size +
+        listOfNotNull(format, status).size +
             if (sort != CatalogSort.UPDATED) 1 else 0
 }
 

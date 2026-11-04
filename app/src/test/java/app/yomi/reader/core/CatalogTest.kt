@@ -5,6 +5,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CatalogTest {
+    @Test fun spanishIsAlwaysTheDefaultCatalogLanguage() {
+        assertEquals("es", SearchFilters().translatedLanguage)
+    }
+
     @Test fun searchFiltersCountAndPaging() {
         assertEquals(0, SearchFilters().activeCount())
         val applied = SearchFilters(

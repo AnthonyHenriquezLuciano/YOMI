@@ -24,7 +24,10 @@ class ComickCatalogSource : ContentSource {
         withContext(Dispatchers.IO) {
             // Anonymous catalog search is supported, but do not send empty
             // requests for discovery: MangaDex supplies the home feed.
-            if (query.trim().length < 2) return@withContext emptyList()
+            if (query.trim().length < 2 || filters.translatedLanguage == "es") {
+                // Este catálogo no garantiza capítulos en español: no inventar disponibilidad.
+                return@withContext emptyList()
+            }
             val params = linkedMapOf(
                 "q" to query.trim(),
                 "page" to (filters.page + 1).toString(),

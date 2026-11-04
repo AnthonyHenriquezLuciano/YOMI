@@ -78,6 +78,11 @@ class ExtensionRepositoryDirectory(private val context: Context) {
             return uri.toASCIIString()
         }
 
+        internal fun isSpanish(lang: String): Boolean {
+            val value = lang.lowercase()
+            return value == "es" || value.startsWith("es-")
+        }
+
         internal fun parseIndex(
             repository: ExtensionRepository, json: String
         ): List<IndexedSource> {
@@ -92,7 +97,7 @@ class ExtensionRepositoryDirectory(private val context: Context) {
                 if (extensions == null || extensions.length() == 0) {
                     val name = extensionName.takeIf(String::isNotBlank) ?: continue
                     val key = name.lowercase() + "|" + extension.optString("lang")
-                    if (seen.add(key)) entries += IndexedSource(
+                    if (isSpanish(extension.optString("lang")) && seen.add(key)) entries += IndexedSource(
                         name = name, language = extension.optString("lang"),
                         originalUrl = "", repository = repository.name,
                         extensionName = name
@@ -104,7 +109,7 @@ class ExtensionRepositoryDirectory(private val context: Context) {
                     val name = source.optString("name").ifBlank { extensionName }
                     val lang = source.optString("lang").ifBlank { extension.optString("lang") }
                     val link = source.optString("baseUrl")
-                    if (name.isBlank()) continue
+                    if (name.isBlank() || !isSpanish(lang)) continue
                     val key = name.lowercase() + "|" + lang + "|" + link
                     if (seen.add(key)) entries += IndexedSource(
                         name = name, language = lang,

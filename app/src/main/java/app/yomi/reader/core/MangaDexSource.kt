@@ -64,7 +64,7 @@ class MangaDexSource : ContentSource {
             else -> Unit
         }
         options.status?.let { filters.add("status[]" to it) }
-        options.translatedLanguage?.let { filters.add("availableTranslatedLanguage[]" to it) }
+        filters.add("availableTranslatedLanguage[]" to "es")
         val order = if (query.isBlank() && options.sort == CatalogSort.RELEVANCE) {
             CatalogSort.UPDATED
         } else options.sort
@@ -129,7 +129,7 @@ class MangaDexSource : ContentSource {
         for (offset in listOf(0, 100, 200)) {
             val url = api + "/manga/" + enc(work.id) + "/feed?" + parameters(
                 "limit" to "100", "offset" to offset.toString(),
-                "translatedLanguage[]" to "es", "translatedLanguage[]" to "en",
+                "translatedLanguage[]" to "es",
                 "order[chapter]" to "desc", "includes[]" to "scanlation_group"
             )
             val data = getJson(url).optJSONArray("data") ?: JSONArray()
@@ -137,7 +137,8 @@ class MangaDexSource : ContentSource {
                 val item = data.optJSONObject(i) ?: continue
                 val attr = item.optJSONObject("attributes") ?: continue
                 val chapterId = item.optString("id")
-                if (chapterId.isBlank() || attr.optBoolean("externalUrl", false)) continue
+                if (chapterId.isBlank() || attr.optString("externalUrl").startsWith("http")) continue
+                if (attr.optString("translatedLanguage") != "es") continue
                 var group = ""
                 val rels = item.optJSONArray("relationships") ?: JSONArray()
                 for (r in 0 until rels.length()) {
