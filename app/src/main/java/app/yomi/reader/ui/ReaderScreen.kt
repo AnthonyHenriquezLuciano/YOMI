@@ -2,6 +2,10 @@ package app.yomi.reader.ui
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.consume
+import kotlin.math.abs
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -125,7 +129,32 @@ fun ReaderScreen(
                         AsyncImage(
                             model = urls[pageIndex.coerceIn(0, urls.lastIndex)],
                             contentDescription = "Página " + (pageIndex + 1),
-                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            modifier = Modifier.fillMaxWidth().weight(1f)
+                                .pointerInput(mode, urls.size, pageIndex) {
+                                    var dragged = 0f
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { dragged = 0f },
+                                        onHorizontalDrag = { change, drag ->
+                                            dragged += drag
+                                            change.consume()
+                                        },
+                                        onDragEnd = {
+                                            val offset = when {
+                                                abs(dragged) < 70f -> 0
+                                                mode == ReadingMode.RTL && dragged > 0f -> 1
+                                                mode == ReadingMode.RTL -> -1
+                                                dragged < 0f -> 1
+                                                else -> -1
+                                            }
+                                            val target = pageIndex + offset
+                                            if (offset != 0 && target in urls.indices) {
+                                                pageIndex = target
+                                                onProgress(target)
+                                                if (target == urls.lastIndex) onComplete()
+                                            }
+                                        }
+                                    )
+                                },
                             contentScale = ContentScale.Fit
                         )
                         Row(Modifier.fillMaxWidth().padding(8.dp),
