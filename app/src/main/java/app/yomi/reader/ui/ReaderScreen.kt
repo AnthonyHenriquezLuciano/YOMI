@@ -1,19 +1,21 @@
 package app.yomi.reader.ui
 
 import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import kotlin.math.abs
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,180 +26,226 @@ import app.yomi.reader.core.Work
 import app.yomi.reader.data.YomiStore
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.collect
+import kotlin.math.abs
 
+/**
+ * No persistent toolbars. Tap the center to reveal/hide controls.
+ * The host activity hides Android system bars while the reader is open.
+ */
 @Composable
 fun ReaderScreen(
-    work: Work, chapter: Chapter, urls: List<String>,
-    loading: Boolean, error: String,
-    stored: YomiStore, onBack: () -> Unit,
+    work: Work,
+    chapter: Chapter,
+    urls: List<String>,
+    loading: Boolean,
+    error: String,
+    stored: YomiStore,
+    onBack: () -> Unit,
     onModeSelected: (ReadingMode) -> Unit,
-    onProgress: (Int) -> Unit, onComplete: () -> Unit,
-    onNext: () -> Unit, hasNext: Boolean, onDownload: () -> Unit
+    onProgress: (Int) -> Unit,
+    onComplete: () -> Unit,
+    onNext: () -> Unit,
+    hasNext: Boolean,
+    onDownload: () -> Unit
 ) {
     var mode by remember(work.key) {
         mutableStateOf(stored.overrideMode(work) ?: work.defaultMode())
     }
-    var openMenu by remember { mutableStateOf(false) }
-    val lastPosition = stored.progress(work)
+    var controlsVisible by remember(chapter.id) { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+    val progress = remember(chapter.id) { stored.progress(work) }
     var pageIndex by remember(chapter.id) {
-        mutableIntStateOf(if (lastPosition?.chapterId == chapter.id) lastPosition.pageIndex else 0)
+        mutableIntStateOf(
+            if (progress?.chapterId == chapter.id) progress.pageIndex else 0
+        )
     }
-    val state = androidx.compose.runtime.key(chapter.id) {
-        rememberLazyListState(initialFirstVisibleItemIndex = pageIndex)
+    val scrollState = androidx.compose.runtime.key(chapter.id) {
+        rememberLazyListState(initialFirstVisibleItemIndex = pageIndex.coerceAtLeast(0))
     }
-    LaunchedEffect(chapter.id, urls.size, mode) {
+    LaunchedEffect(chapter.id, mode, urls.size) {
         if (mode == ReadingMode.VERTICAL && urls.isNotEmpty()) {
-            snapshotFlow { state.firstVisibleItemIndex }
+            snapshotFlow { scrollState.firstVisibleItemIndex }
                 .distinctUntilChanged()
                 .collect { index ->
-                    pageIndex = index
-                    onProgress(index)
-                    if (index >= urls.lastIndex) onComplete()
+                    val current = index.coerceIn(0, urls.lastIndex)
+                    pageIndex = current
+                    onProgress(current)
+                    if (current >= urls.lastIndex) onComplete()
                 }
         }
     }
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Volver") }
-            Column(Modifier.weight(1f)) {
-                Text(work.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(chapter.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.labelSmall)
-            }
-            IconButton(onClick = onDownload, enabled = urls.isNotEmpty() && chapter.sourceId != "local") {
-                Icon(Icons.Default.Download, "Descargar capítulo")
-            }
-            Box {
-                IconButton(onClick = { openMenu = true }) { Icon(Icons.Default.Tune, "Modo de lectura") }
-                DropdownMenu(expanded = openMenu, onDismissRequest = { openMenu = false }) {
-                    ReadingMode.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option.label) },
-                            leadingIcon = {
-                                if (mode == option) Icon(Icons.Default.Check, null)
-                            },
-                            onClick = {
-                                mode = option
-                                onModeSelected(option)
-                                openMenu = false
-                            }
-                        )
+    fun navigateBy(delta: Int) {
+        val next = pageIndex + delta
+        if (next in urls.indices) {
+            pageIndex = next
+            onProgress(next)
+            if (next == urls.lastIndex) onComplete()
+        } else if (next >= urls.size && hasNext) {
+            onNext()
+        }
+    }
+
+    Box(
+        Modifier.fillMaxSize().background(Color.Black)
+            .pointerInput(mode, urls.size, pageIndex) {
+                detectTapGestures { position ->
+                    if (mode == ReadingMode.VERTICAL || urls.isEmpty()) {
+                        controlsVisible = !controlsVisible
+                    } else {
+                        when {
+                            position.x < size.width * 0.25f ->
+                                navigateBy(if (mode == ReadingMode.RTL) -1 else -1)
+                            position.x > size.width * 0.75f ->
+                                navigateBy(1)
+                            else -> controlsVisible = !controlsVisible
+                        }
                     }
                 }
             }
-        }
-        if (urls.isNotEmpty()) {
-            val fraction = (pageIndex + 1).toFloat() / urls.size
-            LinearProgressIndicator(progress = { fraction.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth())
-        }
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            when {
-                loading -> CircularProgressIndicator()
-                error.isNotBlank() && urls.isEmpty() ->
-                    Text(error, color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(24.dp))
-                urls.isEmpty() -> Text("No hay imágenes disponibles para este capítulo.")
-                mode == ReadingMode.VERTICAL -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(), state = state,
-                        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        when {
+            loading -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center), color = Color.White
+            )
+            error.isNotBlank() && urls.isEmpty() ->
+                Text(error, color = Color.White, modifier = Modifier.align(Alignment.Center)
+                    .padding(28.dp))
+            urls.isEmpty() ->
+                Text("No se encontraron páginas para este capítulo.",
+                    color = Color.White, modifier = Modifier.align(Alignment.Center).padding(26.dp))
+            mode == ReadingMode.VERTICAL -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = scrollState,
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                itemsIndexed(urls) { index, url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = "Página " + (index + 1),
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 200.dp)
+                    )
+                }
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().background(Color.Black)
+                            .padding(vertical = 30.dp, horizontal = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        itemsIndexed(urls) { _, page ->
-                            AsyncImage(
-                                model = page, contentDescription = "Página",
-                                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 220.dp),
-                                contentScale = ContentScale.FillWidth
-                            )
-                        }
-                        item {
-                            Column(Modifier.fillMaxWidth().padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Fin del capítulo", fontWeight = FontWeight.Bold)
-                                if (hasNext) Button(onClick = onNext) { Text("Siguiente capítulo") }
-                            }
-                        }
+                        Text("Fin del capítulo", color = Color.White)
+                        if (hasNext) Button(onClick = onNext) { Text("Siguiente capítulo") }
                     }
                 }
-                else -> {
-                    Column(Modifier.fillMaxSize()) {
-                        AsyncImage(
-                            model = urls[pageIndex.coerceIn(0, urls.lastIndex)],
-                            contentDescription = "Página " + (pageIndex + 1),
-                            modifier = Modifier.fillMaxWidth().weight(1f)
-                                .pointerInput(mode, urls.size, pageIndex) {
-                                    var dragged = 0f
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { dragged = 0f },
-                                        onHorizontalDrag = { change, drag ->
-                                            dragged += drag
-                                            change.consume()
-                                        },
-                                        onDragEnd = {
-                                            val offset = when {
-                                                abs(dragged) < 70f -> 0
-                                                mode == ReadingMode.RTL && dragged > 0f -> 1
-                                                mode == ReadingMode.RTL -> -1
-                                                dragged < 0f -> 1
-                                                else -> -1
-                                            }
-                                            val target = pageIndex + offset
-                                            if (offset != 0 && target in urls.indices) {
-                                                pageIndex = target
-                                                onProgress(target)
-                                                if (target == urls.lastIndex) onComplete()
-                                            }
+            }
+            else -> AsyncImage(
+                model = urls[pageIndex.coerceIn(0, urls.lastIndex)],
+                contentDescription = "Página " + (pageIndex + 1),
+                modifier = Modifier.fillMaxSize()
+                    .pointerInput(mode, urls.size, pageIndex) {
+                        var dragged = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { dragged = 0f },
+                            onHorizontalDrag = { change, offset ->
+                                dragged += offset
+                                change.consume()
+                            },
+                            onDragEnd = {
+                                if (abs(dragged) >= 70f) {
+                                    navigateBy(
+                                        if (mode == ReadingMode.RTL) {
+                                            if (dragged > 0) 1 else -1
+                                        } else {
+                                            if (dragged < 0) 1 else -1
                                         }
                                     )
-                                },
-                            contentScale = ContentScale.Fit
+                                }
+                            }
                         )
-                        Row(Modifier.fillMaxWidth().padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween) {
-                            val previous = {
-                                val target = if (mode == ReadingMode.RTL) pageIndex + 1 else pageIndex - 1
-                                if (target in urls.indices) {
-                                    pageIndex = target; onProgress(target)
-                                    if (target == urls.lastIndex) onComplete()
+                    },
+                contentScale = ContentScale.Fit
+            )
+        }
+        if (controlsVisible) {
+            Row(
+                Modifier.fillMaxWidth().align(Alignment.TopCenter)
+                    .background(Color.Black.copy(alpha = 0.84f))
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, "Volver", tint = Color.White)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(work.title, color = Color.White, fontWeight = FontWeight.Bold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleSmall)
+                    Text(chapter.title, color = Color.White.copy(alpha = 0.78f),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall)
+                }
+                if (chapter.sourceId != "local") IconButton(onClick = onDownload) {
+                    Icon(Icons.Default.Download, "Descargar capítulo", tint = Color.White)
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Default.Tune, "Modo de lectura", tint = Color.White)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        ReadingMode.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                leadingIcon = {
+                                    if (mode == option) Icon(Icons.Default.Check, null)
+                                },
+                                onClick = {
+                                    mode = option
+                                    onModeSelected(option)
+                                    menuOpen = false
                                 }
-                            }
-                            val next = {
-                                val target = if (mode == ReadingMode.RTL) pageIndex - 1 else pageIndex + 1
-                                if (target in urls.indices) {
-                                    pageIndex = target; onProgress(target)
-                                    if (target == urls.lastIndex) onComplete()
-                                }
-                            }
-                            IconButton(onClick = previous) { Icon(Icons.Default.ChevronLeft, "Página izquierda") }
-                            Text((pageIndex + 1).toString() + " / " + urls.size,
-                                style = MaterialTheme.typography.labelMedium)
-                            IconButton(onClick = next) { Icon(Icons.Default.ChevronRight, "Página derecha") }
-                        }
-                        if (pageIndex == urls.lastIndex && hasNext) {
-                            TextButton(onClick = onNext, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                                Text("Siguiente capítulo")
-                            }
+                            )
                         }
                     }
                 }
             }
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Fuente: " + if (chapter.sourceId == "mangadex") "MangaDex" else "Archivo local",
-                    style = MaterialTheme.typography.labelSmall)
-                if (chapter.scanlationGroup.isNotBlank()) Text("Traducción: " + chapter.scanlationGroup,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+                    .background(Color.Black.copy(alpha = 0.86f))
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (urls.isNotEmpty()) {
+                    LinearProgressIndicator(
+                        progress = { ((pageIndex + 1f) / urls.size).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White,
+                        trackColor = Color.DarkGray
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        if (urls.isEmpty()) "Sin páginas"
+                        else (pageIndex + 1).toString() + " / " + urls.size,
+                        color = Color.White, style = MaterialTheme.typography.labelMedium
+                    )
+                    if (mode != ReadingMode.VERTICAL) Row {
+                        IconButton(onClick = { navigateBy(-1) }) {
+                            Icon(Icons.Default.ChevronLeft, "Página anterior", tint = Color.White)
+                        }
+                        IconButton(onClick = { navigateBy(1) }) {
+                            Icon(Icons.Default.ChevronRight, "Página siguiente", tint = Color.White)
+                        }
+                    }
+                    if (hasNext && pageIndex >= urls.lastIndex && urls.isNotEmpty()) {
+                        TextButton(onClick = onNext) {
+                            Text("Siguiente capítulo", color = Color.White)
+                        }
+                    }
+                }
             }
-            Text(mode.label.substringBefore(" ·"), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
