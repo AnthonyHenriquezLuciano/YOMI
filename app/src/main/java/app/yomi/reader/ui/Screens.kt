@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -147,58 +149,170 @@ fun HomeScreen(
 @Composable
 fun ExploreScreen(
     query: String, onQuery: (String) -> Unit, results: List<Work>,
-    loading: Boolean, error: String, filter: WorkFormat?,
-    onSearch: () -> Unit, onFilter: (WorkFormat?) -> Unit,
+    loading: Boolean, error: String, filters: SearchFilters,
+    hasMore: Boolean, onLoadMore: () -> Unit,
+    onSearch: () -> Unit, onFiltersChanged: (SearchFilters) -> Unit,
     onOpen: (Work) -> Unit
 ) {
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Heading("Explorar", "Un catálogo para todas tus historias")
+    var showAdvanced by rememberSaveable { mutableStateOf(false) }
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Heading("Explorar", "Manga, manhwa y manhua desde un solo buscador")
             OutlinedTextField(
                 value = query, onValueChange = onQuery, singleLine = true,
-                placeholder = { Text("Buscar por título...") },
+                placeholder = { Text("Buscar título o nombre alternativo...") },
+                label = { Text("Buscar obras") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
-                    IconButton(onClick = onSearch) { Icon(Icons.Default.ArrowForward, "Buscar") }
+                    IconButton(onClick = {
+                        if (query.isNotBlank()) onQuery("") else onSearch()
+                    }) {
+                        Icon(if (query.isNotBlank()) Icons.Default.Close
+                            else Icons.Default.ArrowForward,
+                            contentDescription = if (query.isNotBlank()) "Vaciar texto" else "Buscar")
+                    }
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(min = 68.dp),
+                shape = RoundedCornerShape(18.dp)
             )
-            Row(Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = filter == null, onClick = { onFilter(null) },
-                    label = { Text("Todos") })
-                listOf(WorkFormat.MANGA, WorkFormat.MANHWA, WorkFormat.MANHUA).forEach { item ->
-                    FilterChip(selected = filter == item, onClick = { onFilter(item) },
-                        label = { Text(item.label) })
+            Row(
+                Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(onClick = onSearch, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Search, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Buscar")
+                }
+                OutlinedButton(onClick = { showAdvanced = !showAdvanced }) {
+                    Icon(Icons.Default.Tune, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Filtros" + if (filters.activeCount() > 0)
+                        " (" + filters.activeCount() + ")" else "")
+                    Icon(if (showAdvanced) Icons.Default.ExpandLess
+                        else Icons.Default.ExpandMore, null)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = filters.format == null,
+                    onClick = { onFiltersChanged(filters.copy(format = null)) },
+                    label = { Text("Todos") }
+                )
+                listOf(WorkFormat.MANGA, WorkFormat.MANHWA, WorkFormat.MANHUA).forEach { fmt ->
+                    FilterChip(
+                        selected = filters.format == fmt,
+                        onClick = { onFiltersChanged(filters.copy(format = fmt)) },
+                        label = { Text(fmt.label) }
+                    )
+                }
+            }
+            if (showAdvanced) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("Ordenar por", fontWeight = FontWeight.SemiBold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CatalogSort.entries.forEach { sort ->
+                                FilterChip(
+                                    selected = filters.sort == sort,
+                                    onClick = { onFiltersChanged(filters.copy(sort = sort)) },
+                                    label = { Text(sort.label) }
+                                )
+                            }
+                        }
+                        Text("Idioma de traducción", fontWeight = FontWeight.SemiBold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(null to "Todos", "es" to "Español", "en" to "Inglés").forEach { (lang, label) ->
+                                FilterChip(
+                                    selected = filters.translatedLanguage == lang,
+                                    onClick = { onFiltersChanged(filters.copy(translatedLanguage = lang)) },
+                                    label = { Text(label) }
+                                )
+                            }
+                        }
+                        Text("Estado de publicación", fontWeight = FontWeight.SemiBold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                null to "Todos", "ongoing" to "En curso",
+                                "completed" to "Finalizado", "hiatus" to "Pausado",
+                                "cancelled" to "Cancelado"
+                            ).forEach { (status, label) ->
+                                FilterChip(
+                                    selected = filters.status == status,
+                                    onClick = { onFiltersChanged(filters.copy(status = status)) },
+                                    label = { Text(label) }
+                                )
+                            }
+                        }
+                        TextButton(
+                            onClick = { onFiltersChanged(SearchFilters()) },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Icon(Icons.Default.RestartAlt, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Restablecer")
+                        }
+                    }
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text("YOMI Global", style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
-                Text("· MangaDex + CBZ local", style = MaterialTheme.typography.labelSmall,
+                Text("MangaDex + CBZ local", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
                 Text(results.size.toString() + " títulos", style = MaterialTheme.typography.labelSmall)
             }
-            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall)
+            if (loading && results.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (error.isNotBlank()) Text(error, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error)
         }
         if (!loading && results.isEmpty()) {
-            EmptyState("Sin resultados", "Busca otro título o comprueba tu conexión.")
+            EmptyState("Sin resultados", "Prueba otro título o cambia los filtros.")
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(135.dp), modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 gridItems(results, key = { it.key }) { work ->
                     WorkCard(work, { onOpen(work) })
+                }
+                if (hasMore || (loading && results.isNotEmpty())) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Box(
+                            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (loading) CircularProgressIndicator()
+                            else OutlinedButton(onClick = onLoadMore) {
+                                Icon(Icons.Default.ExpandMore, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Cargar más resultados")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -384,8 +498,42 @@ fun DetailScreen(
                     Text("Continuar / Comenzar")
                 }
                 if (work.description.isNotBlank()) {
-                    Text("Sinopsis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(work.description.take(1200), style = MaterialTheme.typography.bodyMedium)
+                    var synopsisExpanded by rememberSaveable(work.key) { mutableStateOf(false) }
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .clickable { synopsisExpanded = !synopsisExpanded }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Sinopsis", style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(if (synopsisExpanded) "Ocultar" else "Mostrar",
+                                        style = MaterialTheme.typography.labelMedium)
+                                    Spacer(Modifier.width(6.dp))
+                                    Icon(
+                                        if (synopsisExpanded) Icons.Default.ExpandLess
+                                        else Icons.Default.ExpandMore,
+                                        contentDescription = if (synopsisExpanded)
+                                            "Ocultar sinopsis" else "Mostrar sinopsis"
+                                    )
+                                }
+                            }
+                            if (synopsisExpanded) {
+                                Text(
+                                    work.description, modifier = Modifier.padding(
+                                        start = 16.dp, end = 16.dp, bottom = 16.dp),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
                 }
                 HorizontalDivider()
                 Text("Capítulos (" + chapters.size + ")",

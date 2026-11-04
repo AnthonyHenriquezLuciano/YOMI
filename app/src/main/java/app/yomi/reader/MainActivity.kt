@@ -17,6 +17,7 @@ import app.yomi.reader.core.*
 import app.yomi.reader.data.YomiStore
 import app.yomi.reader.ui.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +42,10 @@ fun YomiApp() {
     var tab by remember { mutableStateOf(Tab.HOME) }
     var dark by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var filter by remember { mutableStateOf<WorkFormat?>(null) }
+    var filters by remember { mutableStateOf(SearchFilters()) }
+    var page by remember { mutableIntStateOf(0) }
+    var hasMore by remember { mutableStateOf(false) }
+    var searchJob by remember { mutableStateOf<Job?>(null) }
     var searchWorks by remember { mutableStateOf<List<Work>>(emptyList()) }
     var sourceVariants by remember { mutableStateOf<Map<String, List<Work>>>(emptyMap()) }
     var searching by remember { mutableStateOf(false) }
@@ -61,19 +65,46 @@ fun YomiApp() {
         library = store.savedWorks()
         downloads = store.downloads()
     }
-    fun search(text: String = query, format: WorkFormat? = filter) {
-        query = text
-        filter = format
-        scope.launch {
-            searching = true; error = ""
+    fun search(
+        text: String = query,
+        nextFilters: SearchFilters = filters,
+        loadMore: Boolean = false
+    ) {
+        if (loadMore && (searching || !hasMore)) return
+        val nextPage = if (loadMore) page + 1 else 0
+        val requested = nextFilters.copy(page = nextPage)
+        searchJob?.cancel()
+        if (!loadMore) {
+            query = text
+            filters = requested.copy(page = 0)
+            page = 0
+            hasMore = false
+            searchWorks = emptyList()
+            sourceVariants = emptyMap()
+        }
+        searchJob = scope.launch {
+            searching = true
+            error = ""
             try {
-                val result = catalog.search(text, format)
-                searchWorks = result.works
-                sourceVariants = result.alternatives
+                val result = catalog.search(text, requested)
+                if (loadMore) {
+                    searchWorks = (searchWorks + result.works)
+                        .distinctBy { normalizedTitle(it.title) + "|" + it.format.name }
+                    sourceVariants = sourceVariants + result.alternatives
+                } else {
+                    searchWorks = result.works
+                    sourceVariants = result.alternatives
+                }
                 if (result.errors.isNotEmpty()) error = result.errors.joinToString("\n")
+                if (result.errors.isEmpty() || result.works.isNotEmpty()) {
+                    page = nextPage
+                    hasMore = result.hasMore
+                }
             } catch (e: Exception) {
                 error = e.message ?: "No se pudo consultar el catálogo"
-            } finally { searching = false }
+            } finally {
+                searching = false
+            }
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
@@ -226,9 +257,11 @@ fun YomiApp() {
                             Tab.EXPLORE -> ExploreScreen(
                                 query = query, onQuery = { query = it },
                                 results = searchWorks, loading = searching,
-                                error = error, filter = filter,
-                                onSearch = { search(query, filter) },
-                                onFilter = { search(query, it) },
+                                error = error, filters = filters,
+                                hasMore = hasMore,
+                                onLoadMore = { search(loadMore = true) },
+                                onSearch = { search(query, filters) },
+                                onFiltersChanged = { search(query, it) },
                                 onOpen = { selectedWork = it }
                             )
                             Tab.LIBRARY -> LibraryScreen(
