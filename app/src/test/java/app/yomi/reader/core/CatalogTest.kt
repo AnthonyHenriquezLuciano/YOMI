@@ -11,7 +11,7 @@ class CatalogTest {
     @Test fun exactDuplicateWorkIsShownOnce() {
         val a = Work("1", "a", "The Hero", format = WorkFormat.MANHWA, language = "en")
         val b = Work("2", "b", "The Hero", format = WorkFormat.MANHWA, language = "es")
-        assertEquals("b", groupResults(listOf(a, b)).single().id)
+        assertEquals("2", groupResults(listOf(a, b)).single().id)
     }
     @Test fun similarButDistinctTitlesRemainSeparate() {
         val a = Work("1", "a", "Hero", format = WorkFormat.MANGA)
