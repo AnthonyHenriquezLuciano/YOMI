@@ -37,7 +37,7 @@ fun BundledSourcesScreen(
             Column(Modifier.weight(1f)) {
                 Text("Fuentes integradas", style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold)
-                Text("10 adaptadores nativos · Español",
+                Text(sources.size.toString() + " adaptadores nativos · Español",
                     style = MaterialTheme.typography.labelSmall)
             }
         }
