@@ -9,6 +9,8 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import org.json.JSONObject
+import org.json.JSONArray
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.net.HttpURLConnection
@@ -227,7 +229,9 @@ class MadaraNativeSource(val config: MadaraConfig) : ContentSource {
         // filters. Return no matches instead of pretending those filters work.
         if (filters.includedTags.isNotEmpty() || filters.excludedTags.isNotEmpty() ||
             filters.demographic != null || filters.year != null || filters.format != null ||
-            filters.status != null) return SourceSearchPage(emptyList())
+            filters.status != null || (!filters.allowSuggestive && config.mixedContent)) {
+            return SourceSearchPage(emptyList())
+        }
         val page = filters.page + 1
         val doc = if (config.browse == MadaraBrowse.AJAX) {
             load("/wp-admin/admin-ajax.php", madaraRequest(query, page, filters.sort))
@@ -298,9 +302,38 @@ class MadaraNativeSource(val config: MadaraConfig) : ContentSource {
         }.distinctBy { it.id }
     }
 
+    internal fun parseDragonChapters(page: Document, work: Work): List<Chapter> {
+        val script = page.selectFirst("script[type=application/json]:containsData(mangaId)")
+            ?: return emptyList()
+        val data = runCatching { JSONObject(script.data()) }.getOrNull() ?: return emptyList()
+        val items = data.optJSONArray("items") ?: return emptyList()
+        return (0 until items.length()).mapNotNull { index ->
+            val chapter = items.optJSONObject(index) ?: return@mapNotNull null
+            val original = safeText(chapter.optString("url"))
+            val url = runCatching { URI(config.root + "/").resolve(original) }.getOrNull()
+                ?: return@mapNotNull null
+            if (url.scheme != "https" || url.host?.lowercase() !in allowedHosts) {
+                return@mapNotNull null
+            }
+            val path = url.rawPath
+            Chapter(
+                id = id + "|" + path,
+                workKey = work.key,
+                sourceId = id,
+                title = safeText(chapter.optString("name"))
+                    .ifBlank { "Capítulo especial" },
+                language = "es"
+            )
+        }.distinctBy { it.id }
+    }
+
     override suspend fun chapters(work: Work): List<Chapter> {
         require(work.sourceId == id)
         val page = load(work.id)
+        if (config.id == "dragontranslationorg") {
+            val fromJson = parseDragonChapters(page, work)
+            if (fromJson.isNotEmpty()) return fromJson
+        }
         val viaAjax = if (config.chapterMode == MadaraChapterMode.AJAX) {
             val path = work.id.substringBefore('?').trimEnd('/') + "/ajax/chapters/"
             try { load(path, emptyMap()) } catch (_: Exception) { page }
