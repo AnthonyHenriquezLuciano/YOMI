@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import app.yomi.reader.core.*
 import app.yomi.reader.data.YomiStore
 import app.yomi.reader.ui.*
@@ -27,6 +29,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import app.yomi.reader.data.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +51,7 @@ private enum class Tab(val label: String) {
 fun YomiApp() {
     val context = LocalContext.current
     val store = remember { YomiStore(context.applicationContext) }
+    val libraryMeta = remember { LibraryMetaStore(context.applicationContext) }
     val remote = remember { MangaDexSource() }
     val localSource = remember { LocalArchiveSource(store) }
     val comick = remember { ComickCatalogSource() }
@@ -70,6 +77,13 @@ fun YomiApp() {
     var pages by remember { mutableStateOf<List<String>>(emptyList()) }
     var pageLoading by remember { mutableStateOf(false) }
     var library by remember { mutableStateOf(store.savedWorks()) }
+    var libraryRevision by remember { mutableIntStateOf(0) }
+    var categories by remember { mutableStateOf(libraryMeta.categories()) }
+    var appearance by remember { mutableStateOf(libraryMeta.appearance()) }
+    var categoryTarget by remember { mutableStateOf<Work?>(null) }
+    var showCategorySettings by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
+    var libraryRefreshing by remember { mutableStateOf(false) }
     var downloads by remember { mutableStateOf(store.downloads()) }
     var downloading by remember { mutableStateOf(false) }
     var downloadJob by remember { mutableStateOf<Job?>(null) }
@@ -79,6 +93,51 @@ fun YomiApp() {
     fun refreshLocal() {
         library = store.savedWorks()
         downloads = store.downloads()
+        categories = libraryMeta.categories()
+        libraryRevision++
+    }
+    fun updateAppearance(value: LibraryAppearance) {
+        appearance = value
+        libraryMeta.setAppearance(value)
+    }
+    fun resume(work: Work) {
+        selectedWork = work
+        val previous = store.progress(work)?.chapterId
+        selectedChapter = libraryMeta.cachedChapters(work)
+            ?.chapters?.firstOrNull { it.id == previous }
+    }
+    fun refreshLibrary() {
+        if (libraryRefreshing) return
+        libraryRefreshing = true
+        scope.launch {
+            var completed = 0
+            var failed = 0
+            try {
+                val toUpdate = library.filterNot { it.catalogOnly }
+                for (work in toUpdate) {
+                    coroutineContext.ensureActive()
+                    try {
+                        val newChapters = catalog.source(work.sourceId)?.chapters(work).orEmpty()
+                        libraryMeta.cacheChapters(work, newChapters)
+                        completed++
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        failed++
+                    }
+                    delay(350)
+                }
+                operationMessage = "Biblioteca actualizada: " + completed +
+                    " obras · Fallidos: " + failed
+            } finally {
+                libraryRefreshing = false
+                refreshLocal()
+            }
+        }
+    }
+    val libraryItems = remember(library, downloads, libraryRevision) {
+        val downloadedIds = downloads.map { it.chapter.id }.toSet()
+        library.map { libraryMeta.item(it, store, downloadedIds) }
     }
     fun queueDownloadBatch(work: Work, selection: List<Chapter>) {
         if (downloading || selection.isEmpty() || work.catalogOnly) return
@@ -168,7 +227,9 @@ fun YomiApp() {
             operationMessage = "Importando archivo CBZ..."
             try {
                 val imported = store.importCbz(uri)
+                libraryMeta.ensureAdded(imported)
                 refreshLocal()
+                categoryTarget = imported
                 tab = Tab.LIBRARY
                 operationMessage = "Importado: " + imported.title
             } catch (e: Exception) {
@@ -189,6 +250,8 @@ fun YomiApp() {
             } else {
                 catalog.source(work.sourceId)?.chapters(work).orEmpty()
             }
+            libraryMeta.cacheChapters(work, chapters)
+            if (store.contains(work)) libraryRevision++
             error = ""
         } catch (e: Exception) {
             error = e.message ?: "No se encontraron capítulos"
@@ -221,12 +284,21 @@ fun YomiApp() {
             WindowCompat.getInsetsController(it.window, it.window.decorView).apply {
                 isAppearanceLightStatusBars = !dark
                 isAppearanceLightNavigationBars = !dark
+                systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (selectedChapter != null) {
+                    hide(WindowInsetsCompat.Type.systemBars())
+                } else {
+                    show(WindowInsetsCompat.Type.systemBars())
+                }
             }
         }
     }
-    BackHandler(enabled = showRepositories || selectedChapter != null ||
-        selectedWork != null || tab != Tab.HOME) {
+    BackHandler(enabled = showRepositories || showCategorySettings || showHistory ||
+        selectedChapter != null || selectedWork != null || tab != Tab.HOME) {
         when {
+            showHistory -> showHistory = false
+            showCategorySettings -> showCategorySettings = false
             showRepositories -> showRepositories = false
             selectedChapter != null -> { selectedChapter = null; refreshLocal() }
             selectedWork != null -> { selectedWork = null; error = "" }
@@ -235,12 +307,41 @@ fun YomiApp() {
     }
     MaterialTheme(colorScheme = palette) {
         Surface(
-            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+            modifier = Modifier.fillMaxSize().then(
+                if (selectedChapter != null) Modifier
+                else Modifier.windowInsetsPadding(WindowInsets.safeDrawing)
+            ),
             color = MaterialTheme.colorScheme.background
         ) {
             val work = selectedWork
             val chapter = selectedChapter
             when {
+                showCategorySettings -> CategoriesSettingsScreen(
+                    categories = categories,
+                    onBack = { showCategorySettings = false },
+                    onAdd = { name ->
+                        val added = libraryMeta.addCategory(name)
+                        if (added) refreshLocal()
+                        added
+                    },
+                    onRename = { old, next ->
+                        val renamed = libraryMeta.renameCategory(old, next)
+                        if (renamed) refreshLocal()
+                        renamed
+                    },
+                    onDelete = { category ->
+                        libraryMeta.deleteCategory(category)
+                        refreshLocal()
+                    }
+                )
+                showHistory -> ReadingHistoryScreen(
+                    items = libraryItems,
+                    onBack = { showHistory = false },
+                    onResume = { work ->
+                        showHistory = false
+                        resume(work)
+                    }
+                )
                 showRepositories -> RepositoryDirectoryScreen(
                     onBack = { showRepositories = false }
                 )
@@ -250,8 +351,12 @@ fun YomiApp() {
                     stored = store,
                     onBack = { selectedChapter = null; refreshLocal() },
                     onModeSelected = { store.setMode(work, it) },
-                    onProgress = { index -> store.setProgress(work, chapter, index) },
-                    onComplete = { store.markRead(chapter.id) },
+                    onProgress = { index ->
+                        store.setProgress(work, chapter, index)
+                        if (libraryMeta.status(work) == ReadingShelf.PENDING)
+                            libraryMeta.setStatus(work, ReadingShelf.READING)
+                    },
+                    onComplete = { store.markRead(chapter.id); libraryRevision++ },
                     onNext = {
                         val index = chapters.indexOfFirst { it.id == chapter.id }
                         if (index > 0) selectedChapter = chapters[index - 1]
@@ -278,11 +383,14 @@ fun YomiApp() {
                     isSaved = library.any { it.key == work.key },
                     isRead = { store.isRead(it) },
                     onBack = { selectedWork = null; error = "" },
-                    onBookmark = {
-                        if (store.contains(work)) store.remove(work) else store.save(work)
-                        refreshLocal()
+                    onBookmark = { categoryTarget = work },
+                    onRead = {
+                        selectedChapter = it
+                        if (store.contains(work)) {
+                            libraryMeta.setStatus(work, ReadingShelf.READING)
+                            libraryRevision++
+                        }
                     },
-                    onRead = { selectedChapter = it },
                     onRefresh = { chapterRefresh++ },
                     onDownloadBatch = { selected -> queueDownloadBatch(work, selected) },
                     downloading = downloading,
@@ -329,14 +437,27 @@ fun YomiApp() {
                                 onFiltersChanged = { search(query, it) },
                                 onOpen = { selectedWork = it }
                             )
-                            Tab.LIBRARY -> LibraryScreen(
-                                library = library,
-                                progress = { store.progress(it) },
+                            Tab.LIBRARY -> LibraryV2Screen(
+                                library = libraryItems,
+                                categories = categories,
+                                appearance = appearance,
+                                onAppearance = { updateAppearance(it) },
+                                revision = libraryRevision,
+                                refreshing = libraryRefreshing,
+                                onRefresh = { refreshLibrary() },
                                 onOpen = { selectedWork = it },
-                                onImport = {
-                                    importLauncher.launch(arrayOf("application/zip",
-                                        "application/x-cbz", "application/octet-stream"))
-                                }
+                                onRandom = { library.randomOrNull()?.let { selectedWork = it } },
+                                onHistory = { showHistory = true },
+                                onContinue = { resume(it) },
+                                onFavorite = {
+                                    libraryMeta.toggleFavorite(it)
+                                    libraryRevision++
+                                },
+                                onShelf = { work, shelf ->
+                                    libraryMeta.setStatus(work, shelf)
+                                    libraryRevision++
+                                },
+                                onCategories = { categoryTarget = it }
                             )
                             Tab.DOWNLOADS -> DownloadsScreen(
                                 downloads = downloads,
@@ -354,7 +475,8 @@ fun YomiApp() {
                                 },
                                 libraryCount = library.size,
                                 downloadCount = downloads.size,
-                                onRepositories = { showRepositories = true }
+                                onRepositories = { showRepositories = true },
+                                onCategories = { showCategorySettings = true }
                             )
                         }
                         if (operationMessage.isNotBlank()) {
@@ -369,5 +491,28 @@ fun YomiApp() {
                 }
             }
         }
+            val target = categoryTarget
+            if (target != null) CategoryPicker(
+                work = target,
+                existing = libraryMeta.assignments(target),
+                categories = categories,
+                alreadySaved = store.contains(target),
+                onAddCategory = { name ->
+                    val added = libraryMeta.addCategory(name)
+                    if (added) refreshLocal()
+                    added
+                },
+                onSave = { names ->
+                    if (!store.contains(target)) store.save(target)
+                    libraryMeta.saveAssignments(target, names)
+                    libraryMeta.ensureAdded(target)
+                    refreshLocal()
+                },
+                onRemove = {
+                    store.remove(target)
+                    refreshLocal()
+                },
+                onDismiss = { categoryTarget = null }
+            )
     }
 }

@@ -388,7 +388,8 @@ fun DownloadsScreen(
 fun SettingsScreen(
     dark: Boolean, onDark: (Boolean) -> Unit, onImport: () -> Unit,
     libraryCount: Int, downloadCount: Int,
-    onRepositories: () -> Unit
+    onRepositories: () -> Unit,
+    onCategories: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
         .padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -405,6 +406,11 @@ fun SettingsScreen(
         }
         HorizontalDivider()
         Text("Archivos y biblioteca", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        OutlinedButton(onClick = onCategories, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.FolderOpen, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Gestionar categorías")
+        }
         OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.FileOpen, null)
             Spacer(Modifier.width(8.dp))
