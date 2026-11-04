@@ -56,7 +56,7 @@ data class MadaraConfig(
     }
 }
 
-/** Ten preconfigured Spanish extensions, bundled at install time. */
+/** Spanish Madara-compatible source adapters bundled at install time. */
 object BundledMadaraSources {
     val configs = listOf(
         MadaraConfig("kazokuden", "KazokuDen", "https://www.kazokuden.com",
@@ -80,6 +80,7 @@ object BundledMadaraSources {
         MadaraConfig("marmota", "Marmota", "https://marmota.me", section = "comic"),
         MadaraConfig("ragnarokscanlation", "Ragnarok Scanlation",
             "https://ragnarokscanlation.org", section = "series"),
+        MadaraConfig("mi2manga", "Mi2Manga", "https://es.mi2manga.com", mixedContent = true),
         MadaraConfig("dragontranslationorg", "Dragon Translation",
             "https://dragontranslation.org",
             browse = MadaraBrowse.HTML, chapterMode = MadaraChapterMode.PAGE,
@@ -90,8 +91,8 @@ object BundledMadaraSources {
             pageSelector = "img.wp-manga-chapter-img", mixedContent = true)
     )
     init {
-        require(configs.size == 10)
-        require(configs.map { it.id }.distinct().size == 10)
+        require(configs.size == 11)
+        require(configs.map { it.id }.distinct().size == configs.size)
     }
 }
 
