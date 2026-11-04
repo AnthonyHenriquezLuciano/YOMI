@@ -236,16 +236,10 @@ fun ExploreScreen(
                                 )
                             }
                         }
-                        Text("Idioma de traducción", fontWeight = FontWeight.SemiBold)
-                        Row(Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(null to "Todos", "es" to "Español", "en" to "Inglés").forEach { (lang, label) ->
-                                FilterChip(
-                                    selected = filters.translatedLanguage == lang,
-                                    onClick = { onFiltersChanged(filters.copy(translatedLanguage = lang)) },
-                                    label = { Text(label) }
-                                )
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Language, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Idioma: Español", fontWeight = FontWeight.SemiBold)
                         }
                         Text("Estado de publicación", fontWeight = FontWeight.SemiBold)
                         Row(Modifier.horizontalScroll(rememberScrollState()),
@@ -279,7 +273,7 @@ fun ExploreScreen(
                 Text("YOMI Global", style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
-                Text("MangaDex + Comick + CBZ", style = MaterialTheme.typography.labelSmall,
+                Text("Contenido en español", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
                 Text(results.size.toString() + " títulos", style = MaterialTheme.typography.labelSmall)
@@ -422,7 +416,7 @@ fun SettingsScreen(
         HorizontalDivider()
         Text("Fuentes integradas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text("MangaDex · Lector integrado", fontWeight = FontWeight.Medium)
-        Text("Comick · Búsqueda de catálogo y enlace externo", fontWeight = FontWeight.Medium)
+        Text("Comick · Catálogo pendiente de verificación de idioma español", fontWeight = FontWeight.Medium)
         Text("CBZ local · Importación desde el dispositivo", fontWeight = FontWeight.Medium)
         OutlinedButton(onClick = onRepositories, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.AccountTree, null)
