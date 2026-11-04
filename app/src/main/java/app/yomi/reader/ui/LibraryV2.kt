@@ -173,7 +173,7 @@ fun LibraryV2Screen(
                     if (section.title.isNotBlank()) item(key = "head_" + section.title) {
                         GroupHeading(section.title, section.items.size, appearance.showCounts)
                     }
-                    items(section.items, key = { it.work.key }) { item ->
+                    items(section.items, key = { section.title + "|" + it.work.key }) { item ->
                         LibraryRow(
                             item, appearance,
                             onOpen = { onOpen(item.work) },
@@ -201,7 +201,7 @@ fun LibraryV2Screen(
                     ) {
                         GroupHeading(section.title, section.items.size, appearance.showCounts)
                     }
-                    gridItems(section.items, key = { it.work.key }) { item ->
+                    gridItems(section.items, key = { section.title + "|" + it.work.key }) { item ->
                         LibraryTile(
                             item, appearance,
                             onOpen = { onOpen(item.work) },
@@ -412,13 +412,23 @@ private fun LibraryFilterSheet(
         LibrarySort.entries.forEach { sort ->
             Row(
                 Modifier.fillMaxWidth().clickable {
-                    onAppearance(appearance.copy(sort = sort))
+                    onAppearance(appearance.copy(
+                        sort = sort,
+                        descending = sort != LibrarySort.ALPHABETICAL &&
+                            sort != LibrarySort.OLDEST &&
+                            sort != LibrarySort.RANDOM
+                    ))
                     if (sort == LibrarySort.RANDOM) onShuffle()
                 },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(selected = appearance.sort == sort, onClick = {
-                    onAppearance(appearance.copy(sort = sort))
+                    onAppearance(appearance.copy(
+                        sort = sort,
+                        descending = sort != LibrarySort.ALPHABETICAL &&
+                            sort != LibrarySort.OLDEST &&
+                            sort != LibrarySort.RANDOM
+                    ))
                     if (sort == LibrarySort.RANDOM) onShuffle()
                 })
                 Text(sort.label, style = MaterialTheme.typography.bodyMedium)

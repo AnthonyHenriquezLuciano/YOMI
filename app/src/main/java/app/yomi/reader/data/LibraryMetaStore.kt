@@ -309,7 +309,7 @@ fun selectLibrary(
         (!appearance.onlyFavorite || item.favorite) &&
         (!appearance.onlyCompleted || item.shelf == ReadingShelf.COMPLETED)
     }
-    val comparator = when (appearance.sort) {
+    val comparator: Comparator<LibraryItem> = when (appearance.sort) {
         LibrarySort.ALPHABETICAL -> compareBy<LibraryItem> { it.work.title.lowercase() }
         LibrarySort.CHAPTER_COUNT -> compareBy { it.chapters }
         LibrarySort.LAST_READ -> compareBy { it.lastReadAt }
