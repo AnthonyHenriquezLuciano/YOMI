@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -15,12 +16,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.yomi.reader.core.*
 
+/** Compact discovery layout: content is primary, not the search controls. */
 @Composable
 fun ExploreV2Screen(
     query: String, onQuery: (String) -> Unit, results: List<Work>,
@@ -29,7 +33,9 @@ fun ExploreV2Screen(
     onSources: () -> Unit,
     hasMore: Boolean, onLoadMore: () -> Unit,
     onSearch: () -> Unit, onFiltersChanged: (SearchFilters) -> Unit,
-    onOpen: (Work) -> Unit
+    onOpen: (Work) -> Unit,
+    compactCovers: Boolean = false,
+    showBadges: Boolean = true
 ) {
     var filtersOpen by remember { mutableStateOf(false) }
     if (filtersOpen) FullExploreFilterSheet(
@@ -40,53 +46,79 @@ fun ExploreV2Screen(
     )
     Column(Modifier.fillMaxSize()) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Explorar", style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold)
-                    Text("Solo obras con capítulos en español",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                TextButton(onClick = onSources) {
-                    Icon(Icons.Default.Language, null, Modifier.size(18.dp))
+                Text(
+                    "Explorar", style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = onSources,
+                    contentPadding = PaddingValues(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Icon(Icons.Default.Hub, null, Modifier.size(17.dp))
                     Spacer(Modifier.width(5.dp))
-                    Text("Fuentes")
+                    Text("Fuentes", style = MaterialTheme.typography.labelMedium)
                 }
             }
-            OutlinedTextField(
-                value = query, onValueChange = onQuery,
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                placeholder = { Text("Buscar título o nombre alternativo...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                trailingIcon = {
-                    if (query.isNotBlank()) IconButton(onClick = { onQuery("") }) {
-                        Icon(Icons.Default.Close, "Limpiar")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.weight(1f).height(46.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .77f))
+                        .padding(horizontal = 11.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Search, null, Modifier.size(19.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(9.dp))
+                    BasicTextField(
+                        value = query, onValueChange = onQuery,
+                        singleLine = true, modifier = Modifier.weight(1f),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                        decorationBox = { field ->
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (query.isBlank()) Text("Buscar una historia...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                field()
+                            }
+                        }
+                    )
+                    if (query.isNotBlank()) {
+                        IconButton(onClick = { onQuery("") }, modifier = Modifier.size(30.dp)) {
+                            Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp))
+                        }
                     }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch() })
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = onSearch, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Search, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Buscar")
                 }
-                OutlinedButton(onClick = { filtersOpen = true }) {
-                    Icon(Icons.Default.Tune, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Filtros" + if (filters.activeCount() > 0)
-                        " (" + filters.activeCount() + ")" else "")
+                Surface(
+                    onClick = { filtersOpen = true },
+                    shape = RoundedCornerShape(13.dp),
+                    color = if (filters.activeCount() > 0)
+                        MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(46.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Tune, "Filtros completos",
+                            tint = if (filters.activeCount() > 0)
+                                MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(21.dp))
+                    }
                 }
             }
             Row(
                 Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 listOf(
                     null to "Todos", WorkFormat.MANGA to "Manga",
@@ -95,75 +127,107 @@ fun ExploreV2Screen(
                     FilterChip(
                         selected = filters.format == format,
                         onClick = { onFiltersChanged(filters.copy(format = format)) },
-                        label = { Text(label) }
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) }
                     )
                 }
             }
             if (filters.includedTags.isNotEmpty() || filters.excludedTags.isNotEmpty()) {
                 val names = availableTags.associateBy { it.id }
                 Row(Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     filters.includedTags.forEach { id ->
                         InputChip(
                             selected = true,
-                            onClick = { onFiltersChanged(filters.copy(includedTags =
-                                filters.includedTags - id)) },
-                            label = { Text(names[id]?.label ?: "Etiqueta") },
-                            trailingIcon = { Icon(Icons.Default.Close, "Eliminar", Modifier.size(14.dp)) }
+                            onClick = { onFiltersChanged(filters.copy(
+                                includedTags = filters.includedTags - id)) },
+                            label = { Text(names[id]?.label ?: "Etiqueta",
+                                style = MaterialTheme.typography.labelSmall) },
+                            trailingIcon = { Icon(Icons.Default.Close, "Quitar", Modifier.size(13.dp)) }
                         )
                     }
                     filters.excludedTags.forEach { id ->
                         InputChip(
                             selected = true,
-                            onClick = { onFiltersChanged(filters.copy(excludedTags =
-                                filters.excludedTags - id)) },
-                            label = { Text("Sin " + (names[id]?.label ?: "etiqueta")) },
-                            trailingIcon = { Icon(Icons.Default.Close, "Eliminar", Modifier.size(14.dp)) }
+                            onClick = { onFiltersChanged(filters.copy(
+                                excludedTags = filters.excludedTags - id)) },
+                            label = { Text("Sin " + (names[id]?.label ?: "etiqueta"),
+                                style = MaterialTheme.typography.labelSmall) },
+                            trailingIcon = { Icon(Icons.Default.Close, "Quitar", Modifier.size(13.dp)) }
                         )
                     }
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Catálogo en español",
-                    style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("EN ESPAÑOL", style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (filters.activeCount() > 0) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(filters.activeCount().toString() + " filtros activos",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Spacer(Modifier.weight(1f))
-                Text(results.size.toString() + " títulos", style = MaterialTheme.typography.labelSmall)
+                Text(results.size.toString() + " títulos", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (loading && results.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall)
+            if (error.isNotBlank()) Text(error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error)
         }
-        if (!loading && results.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(28.dp), contentAlignment = Alignment.Center) {
-                Text("No se encontraron obras con capítulos en español.\n" +
-                    "Prueba otra búsqueda o modifica los filtros.")
+        when {
+            loading && results.isEmpty() -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(if (compactCovers) 112.dp else 143.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(8) { ShimmerWorkCard() }
+                }
             }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(135.dp),
+            !loading && results.isEmpty() -> Box(
+                Modifier.fillMaxSize().padding(28.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(Icons.Default.AutoStories, null, Modifier.size(44.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Ninguna obra coincide con la búsqueda",
+                        style = MaterialTheme.typography.titleMedium)
+                    Text("Prueba otra palabra, género o fuente.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(onClick = { onFiltersChanged(SearchFilters()) }) {
+                        Text("Restablecer búsqueda")
+                    }
+                }
+            }
+            else -> LazyVerticalGrid(
+                columns = GridCells.Adaptive(if (compactCovers) 112.dp else 143.dp),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 gridItems(results, key = { it.key }) { work ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         WorkCard(work, { onOpen(work) })
-                        if (work.chapterCount > 0) Text(
-                            work.chapterCount.toString() + " capítulos en español",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (showBadges && work.chapterCount > 0) {
+                            Text(work.chapterCount.toString() + " caps. · Español",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
                 if (hasMore || (loading && results.isNotEmpty())) item(
                     span = { GridItemSpan(maxLineSpan) }
                 ) {
-                    Box(Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    Box(Modifier.fillMaxWidth().padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center) {
                         if (loading) CircularProgressIndicator()
-                        else OutlinedButton(onClick = onLoadMore) {
-                            Text("Cargar más resultados")
-                        }
+                        else OutlinedButton(onClick = onLoadMore) { Text("Ver más títulos") }
                     }
                 }
             }
