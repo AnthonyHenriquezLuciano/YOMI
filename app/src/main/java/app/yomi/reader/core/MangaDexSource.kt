@@ -106,7 +106,22 @@ class MangaDexSource : ContentSource {
             "cooking" to "Cocina", "music" to "Música",
             "vampires" to "Vampiros", "ghosts" to "Fantasmas",
             "ninja" to "Ninjas", "samurai" to "Samuráis",
-            "royal family" to "Familia real", "wuxia" to "Artes marciales chinas"
+            "royal family" to "Familia real", "wuxia" to "Artes marciales chinas",
+            "magical girls" to "Chicas mágicas", "delinquents" to "Delincuentes",
+            "gender swap" to "Cambio de género", "genderswap" to "Cambio de género",
+            "crossdressing" to "Travestismo", "harem" to "Harén",
+            "reverse harem" to "Harén inverso", "mafia" to "Mafia",
+            "traditional games" to "Juegos tradicionales",
+            "gore" to "Violencia gráfica", "ecchi" to "Ecchi",
+            "sexual violence" to "Violencia sexual", "erotica" to "Erótico",
+            "incest" to "Incesto", "loli" to "Loli", "shota" to "Shota",
+            "gyaru" to "Gyaru", "doujinshi" to "Obra de aficionados",
+            "self-published" to "Autopublicado",
+            "oneshot" to "Capítulo único", "one-shot" to "Capítulo único",
+            "award winning" to "Premiado", "fan colored" to "Coloreado por fans",
+            "official colored" to "Coloreado oficial",
+            "anthology" to "Antología", "smut" to "Contenido erótico",
+            "historical fiction" to "Ficción histórica"
         )
         fun readableTitle(candidates: List<Pair<String, String>>): String {
             val clean = candidates.mapNotNull { (lang, value) ->
@@ -124,11 +139,13 @@ class MangaDexSource : ContentSource {
             clean.firstOrNull { usable(it.second) }?.let { return it.second }
             // Transliterate rather than displaying a title exclusively in CJK script.
             val raw = clean.first().second
-            return runCatching {
+            val romanized = runCatching {
                 safeText(Transliterator.getInstance(
                     "Han-Latin; Hangul-Latin; Katakana-Latin; Hiragana-Latin; Latin-ASCII"
                 ).transliterate(raw))
-            }.getOrDefault(raw)
+            }.getOrDefault("")
+            // Avoid displaying unromanized CJK text as the apparent Spanish title.
+            return romanized.takeIf(::usable).orEmpty()
         }
 
         fun localizedTag(en: String, es: String): String =
