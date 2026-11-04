@@ -219,7 +219,12 @@ fun YomiApp() {
                     try {
                         val urls = catalog.source(chapter.sourceId)?.pages(chapter).orEmpty()
                         require(urls.isNotEmpty()) { "Sin imágenes" }
-                        store.download(work, chapter, urls) { percent ->
+                        store.download(work, chapter, urls, waitIfPaused = {
+                            while (downloadPaused) {
+                                delay(250)
+                                coroutineContext.ensureActive()
+                            }
+                        }) { percent ->
                             downloadStatus = "Capítulo " + (index + 1) +
                                 " de " + selection.size + " · " + percent + "%"
                         }

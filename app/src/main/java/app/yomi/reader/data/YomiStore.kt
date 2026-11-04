@@ -11,6 +11,7 @@ import app.yomi.reader.core.Work
 import app.yomi.reader.core.WorkFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.ensureActive
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -174,7 +175,9 @@ class YomiStore(private val context: Context) {
     }
 
     suspend fun download(
-        work: Work, chapter: Chapter, urls: List<String>, progress: (Int) -> Unit = {}
+        work: Work, chapter: Chapter, urls: List<String>,
+        waitIfPaused: suspend () -> Unit = {},
+        progress: (Int) -> Unit = {}
     ) = withContext(Dispatchers.IO) {
         require(urls.isNotEmpty()) { "No hay páginas disponibles" }
         val safeId = MessageDigest.getInstance("SHA-256")
@@ -185,6 +188,8 @@ class YomiStore(private val context: Context) {
         val written = mutableListOf<String>()
         try {
             for ((index, url) in urls.withIndex()) {
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                waitIfPaused()
                 val target = File(folder, index.toString().padStart(4, '0') + ".jpg")
                 require(url.startsWith("https://")) { "Solo se permiten imágenes HTTPS" }
                 val connection = (URL(url).openConnection() as HttpURLConnection).apply {
