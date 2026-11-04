@@ -5,6 +5,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CatalogTest {
+    @Test fun searchFiltersCountAndPaging() {
+        assertEquals(0, SearchFilters().activeCount())
+        val applied = SearchFilters(
+            format = WorkFormat.MANHWA, translatedLanguage = "es",
+            status = "completed", sort = CatalogSort.POPULAR
+        )
+        assertEquals(4, applied.activeCount())
+        assertEquals("completed", applied.copy(page = 2).status)
+        assertEquals(2, applied.copy(page = 2).page)
+    }
+
     @Test fun accentsAndPunctuationNormalize() {
         assertEquals("solo leveling", normalizedTitle("SÓLO - Leveling!!"))
     }

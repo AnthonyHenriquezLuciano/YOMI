@@ -52,10 +52,35 @@ data class ReadingProgress(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+enum class CatalogSort(val label: String, val apiKey: String, val direction: String) {
+    UPDATED("Actualizados", "latestUploadedChapter", "desc"),
+    POPULAR("Populares", "followedCount", "desc"),
+    NEWEST("Nuevos", "createdAt", "desc"),
+    TITLE("Título A-Z", "title", "asc"),
+    RELEVANCE("Relevancia", "relevance", "desc")
+}
+
+data class SearchFilters(
+    val format: WorkFormat? = null,
+    val status: String? = null,
+    val translatedLanguage: String? = null,
+    val sort: CatalogSort = CatalogSort.UPDATED,
+    val page: Int = 0,
+    val pageSize: Int = 30
+) {
+    init {
+        require(page >= 0)
+        require(pageSize in 1..100)
+    }
+    fun activeCount(): Int =
+        listOfNotNull(format, status, translatedLanguage).size +
+            if (sort != CatalogSort.UPDATED) 1 else 0
+}
+
 interface ContentSource {
     val id: String
     val name: String
-    suspend fun search(query: String): List<Work>
+    suspend fun search(query: String, filters: SearchFilters = SearchFilters()): List<Work>
     suspend fun chapters(work: Work): List<Chapter>
     suspend fun pages(chapter: Chapter): List<String>
 }

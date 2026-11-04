@@ -46,13 +46,29 @@ class MangaDexSource : ContentSource {
         return if (keys.hasNext()) names.optString(keys.next()) else ""
     }
 
-    override suspend fun search(query: String): List<Work> {
+    override suspend fun search(query: String, options: SearchFilters): List<Work> {
         val filters = mutableListOf(
-            "limit" to "30", "includes[]" to "cover_art",
+            "limit" to options.pageSize.toString(),
+            "offset" to (options.page * options.pageSize).toString(),
+            "includes[]" to "cover_art",
             "contentRating[]" to "safe", "contentRating[]" to "suggestive"
         )
         if (query.isNotBlank()) filters.add("title" to query.trim())
-        else filters.add("order[latestUploadedChapter]" to "desc")
+        when (options.format) {
+            WorkFormat.MANGA -> filters.add("originalLanguage[]" to "ja")
+            WorkFormat.MANHWA -> filters.add("originalLanguage[]" to "ko")
+            WorkFormat.MANHUA -> {
+                filters.add("originalLanguage[]" to "zh")
+                filters.add("originalLanguage[]" to "zh-hk")
+            }
+            else -> Unit
+        }
+        options.status?.let { filters.add("status[]" to it) }
+        options.translatedLanguage?.let { filters.add("availableTranslatedLanguage[]" to it) }
+        val order = if (query.isBlank() && options.sort == CatalogSort.RELEVANCE) {
+            CatalogSort.UPDATED
+        } else options.sort
+        filters.add("order[" + order.apiKey + "]" to order.direction)
         val response = getJson(api + "/manga?" + parameters(*filters.toTypedArray()))
         val array = response.optJSONArray("data") ?: JSONArray()
         return buildList {
