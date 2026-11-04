@@ -54,7 +54,8 @@ class YomiStore(private val context: Context) {
     private fun decodeWork(json: JSONObject): Work = Work(
         id = json.optString("id"), sourceId = json.optString("sourceId"),
         title = json.optString("title"), description = json.optString("description"),
-        descriptionLanguage = json.optString("descriptionLanguage", "es"),
+        descriptionLanguage = json.optString("descriptionLanguage",
+            if (json.optString("sourceId") == "mangadex") "en" else "es"),
         coverUrl = json.optString("cover"),
         format = runCatching { WorkFormat.valueOf(json.optString("format")) }.getOrDefault(WorkFormat.OTHER),
         language = json.optString("language"),
