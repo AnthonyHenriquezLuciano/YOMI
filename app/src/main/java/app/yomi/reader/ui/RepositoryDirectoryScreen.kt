@@ -28,6 +28,7 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
     var listings by remember { mutableStateOf<List<RepositoryListing>>(emptyList()) }
     var refreshing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+    var selectedLanguage by remember { mutableStateOf("all") }
     var urlInput by remember { mutableStateOf("") }
     var showAdd by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
@@ -40,6 +41,7 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
     }
     LaunchedEffect(Unit) { refresh() }
     val sources = listings.flatMap { it.sources }
+        .filter { selectedLanguage == "all" || it.language == selectedLanguage }
         .filter {
             query.isBlank() || it.name.contains(query, true) ||
                 it.repository.contains(query, true) || it.language.contains(query, true)
@@ -140,6 +142,22 @@ fun RepositoryDirectoryScreen(onBack: () -> Unit) {
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "all" to "Todos", "es" to "Español",
+                    "en" to "Inglés", "pt" to "Portugués",
+                    "ko" to "Coreano", "zh" to "Chino", "ja" to "Japonés"
+                ).forEach { (code, label) ->
+                    FilterChip(
+                        selected = selectedLanguage == code,
+                        onClick = { selectedLanguage = code },
+                        label = { Text(label) }
+                    )
+                }
+            }
             Text(sources.size.toString() + " entradas de directorio",
                 style = MaterialTheme.typography.labelMedium)
             if (refreshing) LinearProgressIndicator(Modifier.fillMaxWidth())
