@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,15 +17,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
 import app.yomi.reader.core.*
 import app.yomi.reader.data.YomiStore
 import app.yomi.reader.ui.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Job
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent { YomiApp() }
     }
 }
@@ -58,16 +66,58 @@ fun YomiApp() {
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
     var chapterLoading by remember { mutableStateOf(false) }
+    var chapterRefresh by remember { mutableIntStateOf(0) }
     var pages by remember { mutableStateOf<List<String>>(emptyList()) }
     var pageLoading by remember { mutableStateOf(false) }
     var library by remember { mutableStateOf(store.savedWorks()) }
     var downloads by remember { mutableStateOf(store.downloads()) }
     var downloading by remember { mutableStateOf(false) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
+    var downloadStatus by remember { mutableStateOf("") }
     var operationMessage by remember { mutableStateOf("") }
 
     fun refreshLocal() {
         library = store.savedWorks()
         downloads = store.downloads()
+    }
+    fun queueDownloadBatch(work: Work, selection: List<Chapter>) {
+        if (downloading || selection.isEmpty() || work.catalogOnly) return
+        downloading = true
+        downloadJob = scope.launch {
+            var completed = 0
+            var existing = 0
+            var failed = 0
+            try {
+                for ((index, chapter) in selection.withIndex()) {
+                    coroutineContext.ensureActive()
+                    downloadStatus = "Capítulo " + (index + 1) + " de " + selection.size
+                    if (store.downloadedPages(chapter.id) != null) {
+                        existing++
+                        continue
+                    }
+                    try {
+                        val urls = catalog.source(chapter.sourceId)?.pages(chapter).orEmpty()
+                        require(urls.isNotEmpty()) { "Sin imágenes" }
+                        store.download(work, chapter, urls)
+                        completed++
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        failed++
+                    }
+                    delay(650) // Reduce continuous API requests
+                }
+                operationMessage = "Guardados: " + completed + " · Ya descargados: " +
+                    existing + " · Fallidos: " + failed
+            } catch (e: CancellationException) {
+                operationMessage = "Descarga detenida: " + completed + " capítulos guardados"
+            } finally {
+                downloadStatus = ""
+                downloading = false
+                refreshLocal()
+                downloadJob = null
+            }
+        }
     }
     fun search(
         text: String = query,
@@ -127,7 +177,7 @@ fun YomiApp() {
         }
     }
     LaunchedEffect(Unit) { search("") }
-    LaunchedEffect(selectedWork?.key) {
+    LaunchedEffect(selectedWork?.key, chapterRefresh) {
         val work = selectedWork ?: return@LaunchedEffect
         chapters = emptyList()
         chapterLoading = true
@@ -165,8 +215,29 @@ fun YomiApp() {
         background = Color(0xFFFAFAFA), surface = Color.White,
         onBackground = Color(0xFF151515), onSurface = Color(0xFF151515)
     )
+    val activity = context as? ComponentActivity
+    SideEffect {
+        activity?.let {
+            WindowCompat.getInsetsController(it.window, it.window.decorView).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
+        }
+    }
+    BackHandler(enabled = showRepositories || selectedChapter != null ||
+        selectedWork != null || tab != Tab.HOME) {
+        when {
+            showRepositories -> showRepositories = false
+            selectedChapter != null -> { selectedChapter = null; refreshLocal() }
+            selectedWork != null -> { selectedWork = null; error = "" }
+            else -> tab = Tab.HOME
+        }
+    }
     MaterialTheme(colorScheme = palette) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+            color = MaterialTheme.colorScheme.background
+        ) {
             val work = selectedWork
             val chapter = selectedChapter
             when {
@@ -187,30 +258,24 @@ fun YomiApp() {
                     },
                     hasNext = chapters.indexOfFirst { it.id == chapter.id } > 0,
                     onDownload = {
-                        if (!downloading && pages.isNotEmpty() && chapter.sourceId != "local") {
-                            scope.launch {
-                                downloading = true; operationMessage = "Descargando capítulo..."
-                                try {
-                                    store.download(work, chapter, pages)
-                                    refreshLocal()
-                                    operationMessage = "Capítulo descargado"
-                                } catch (e: Exception) {
-                                    operationMessage = e.message ?: "Error de descarga"
-                                } finally { downloading = false }
-                            }
+                        if (chapter.sourceId != "local") {
+                            queueDownloadBatch(work, listOf(chapter))
                         }
                     }
                 )
-                work != null -> DetailScreen(
+                work != null -> YomiDetailScreen(
                     work = work, chapters = chapters, loading = chapterLoading,
-                    sourceChoices = sourceVariants.values.firstOrNull { group -> group.any { it.key == work.key } } ?: listOf(work),
+                    sourceChoices = sourceVariants.values.firstOrNull { group ->
+                        group.any { it.key == work.key }
+                    } ?: listOf(work),
                     onSourceChange = { selectedWork = it },
                     onOpenExternal = { link ->
                         if (link.startsWith("https://")) {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                         }
                     },
-                    error = error, isSaved = library.any { it.key == work.key },
+                    error = error,
+                    isSaved = library.any { it.key == work.key },
                     isRead = { store.isRead(it) },
                     onBack = { selectedWork = null; error = "" },
                     onBookmark = {
@@ -218,30 +283,16 @@ fun YomiApp() {
                         refreshLocal()
                     },
                     onRead = { selectedChapter = it },
-                    onContinue = {
-                        val previous = store.progress(work)?.chapterId
-                        selectedChapter = chapters.firstOrNull { it.id == previous } ?: chapters.lastOrNull()
-                    },
-                    onDownload = { c ->
-                        if (!downloading) {
-                            scope.launch {
-                                downloading = true
-                                operationMessage = "Descargando " + c.title
-                                try {
-                                    val urls = catalog.source(c.sourceId)?.pages(c).orEmpty()
-                                    store.download(work, c, urls)
-                                    refreshLocal()
-                                    operationMessage = "Descarga completada"
-                                } catch (e: Exception) {
-                                    operationMessage = e.message ?: "Error al descargar"
-                                } finally { downloading = false }
-                            }
-                        }
-                    }
+                    onRefresh = { chapterRefresh++ },
+                    onDownloadBatch = { selected -> queueDownloadBatch(work, selected) },
+                    downloading = downloading,
+                    downloadStatus = downloadStatus,
+                    onCancelDownloads = { downloadJob?.cancel() }
                 )
                 else -> Scaffold(
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     bottomBar = {
-                        NavigationBar {
+                        NavigationBar(windowInsets = WindowInsets(0, 0, 0, 0)) {
                             Tab.entries.forEach { item ->
                                 val icon = when (item) {
                                     Tab.HOME -> Icons.Default.Home
