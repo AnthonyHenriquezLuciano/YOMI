@@ -242,7 +242,7 @@ class MadaraNativeSource(val config: MadaraConfig) : ContentSource {
             }
             load(path)
         }
-        val found = parseWorks(doc).take(filters.pageSize)
+        val found = parseWorks(doc).take(filters.pageSize.coerceAtMost(6))
         // Verify a small, bounded portion of the catalog. Never mark zero-chapter works readable.
         val verified = coroutineScope {
             found.map { work ->
@@ -259,7 +259,7 @@ class MadaraNativeSource(val config: MadaraConfig) : ContentSource {
             }.awaitAll()
         }.filter { it.chapterCount > 0 }
         return SourceSearchPage(verified,
-            if (config.browse == MadaraBrowse.AJAX) found.size >= filters.pageSize
+            if (config.browse == MadaraBrowse.AJAX) found.isNotEmpty()
             else doc.selectFirst("a.nextpostslink, div.nav-previous a, a.next") != null)
     }
 
