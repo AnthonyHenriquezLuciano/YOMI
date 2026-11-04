@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import app.yomi.reader.core.Work
 import app.yomi.reader.core.safeText
 import com.google.android.gms.tasks.Task
-import com.google.mlkit.nl.translate.DownloadConditions
+import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
