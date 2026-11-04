@@ -1,62 +1,68 @@
-# YOMI Global · Android 0.4.0
+# YOMI Global · Android 0.5.0
 
-App Android de manga, manhwa y manhua en español con diseño blanco/negro, Kotlin y Jetpack Compose.
+Lector Android nativo para manga, manhwa y manhua, priorizando **capítulos en español**.
+Kotlin + Jetpack Compose. Sin anuncios y sin instalación de APK de extensiones externas.
 
-## Novedades 0.4
+## Novedades de Explorar 0.5
 
-### Lector inmersivo
-- Por defecto oculta los controles superior e inferior.
-- Android oculta temporalmente barras del sistema durante la lectura.
-- Toca el **centro** para mostrar u ocultar controles.
-- Lectura webtoon vertical y manga por páginas, con gestos de navegación.
-- Barra de progreso y selector de modo solo visibles al abrir controles.
-- Usa Atrás de Android para volver sin depender de barras permanentes.
+- **Filtro completo:** formato (manga, manhwa, manhua), estado (publicando, finalizado, pausado, cancelado), público (shōnen, shōjo, seinen, josei), año de publicación, contenido sugerente, fuente y ordenamiento.
+- **Géneros y etiquetas:** descargados desde \`GET /manga/tag\` de MangaDex, organizados en géneros, temas, formatos y contenido; nombres priorizados en español, con traducción conocida de géneros comunes.
+- Selección **múltiple** de etiquetas para **incluir o excluir**. Coincidencia **todas (Y)** o **cualquiera (O)**.
+- Las etiquetas se muestran en la ficha de la obra, debajo de la sinopsis; pulsarlas inicia una búsqueda de títulos relacionados.
+- **Títulos localizados:** prioridad al título oficial en español, luego inglés o romanizado. Se evita presentar solo caracteres CJK cuando existe un nombre latino.
+- **Sinopsis en español:** si el proveedor ofrece una descripción en español se utiliza directamente; cuando solo aporta otra lengua, YOMI traduce **en el dispositivo** con ML Kit al desplegar la sinopsis. La primera traducción necesita Wi-Fi para descargar el modelo, es automática y puede contener errores. El resultado se guarda en caché local.
+- **Capítulos limpios:** nunca presenta la palabra literal \`null\` como número, título, volumen o grupo.
+- **Sin obras vacías:** búsqueda MangaDex filtrada por traducción en español y disponibilidad; adicionalmente se verifica con el feed que haya al menos un capítulo en español antes de mostrar el resultado. Una comprobación fallida no se presenta como una obra verificadamente legible.
+- Los resultados admiten paginación y se muestran los recuentos de capítulos informados por el feed.
 
-### Biblioteca
-- Barra de búsqueda, botón de filtros y menú **⋮**.
-- Menú: **Actualizar biblioteca**, **Abrir un elemento al azar**, **Historial**.
-- Filtros: **Descargados**, **Sin leer**, **Empezados**, **Favoritos**, **Completados**.
-- Orden: **Alfabéticamente**, **Número de capítulos**, **Última lectura**, **Restantes**, **Capítulos más recientes**, **Fecha de obtención**, **Antigüedad**, **Al azar**; opción descendente.
-- Apariencia: **Cuadrícula compacta**, **Cuadrícula amplia**, **Solo portadas**, **Lista**.
-- Deslizador para títulos por fila en cuadrículas compacta/portadas.
-- Superposiciones independientes: descargados, sin leer, local, idioma y botón **Seguir leyendo**.
-- Pestañas opcionales de categorías y recuentos.
-- Agrupación (opción única) por **Categorías**, **Fuentes**, **Estado** o **Desagrupado**.
-- Menú por obra: favorito, asignar categorías y cambiar estado (pendiente, en lectura, completado).
+## Fuentes de contenido activas
 
-### Categorías
-- **Ajustes → Gestionar categorías**: crear, renombrar y eliminar.
-- Al pulsar **Añadir a la biblioteca**, aparece una hoja para seleccionar una o varias categorías, crear una nueva o guardar sin categoría.
-- Las categorías pueden cambiarse desde el menú de cada obra.
-- Al importar un CBZ también se ofrece categorizarlo.
-- Eliminar una categoría **no borra** las obras guardadas.
+| Proveedor | Buscar títulos | Abrir capítulos |
+|---|---|---|
+| MangaDex · español | Sí | Sí, sujeto a disponibilidad |
+| CBZ locales | Sí | Sí, offline |
+| Comick | No en filtro español (no verifica traducción disponible) | No |
 
-### Datos y actualización
-- Preferencias y categorías guardadas localmente en el dispositivo.
-- Los recuentos de capítulos se calculan a partir de listas consultadas y guardadas; se muestran según los datos **disponibles**, sin inventar totales.
-- **Actualizar biblioteca** revisa obras conocidas una por una; necesita conexión para fuentes online y la aplicación abierta.
-- El historial usa las marcas de lectura registradas en el dispositivo.
-- El agrupamiento por categorías puede mostrar una obra en más de una sección si tiene varias categorías.
+El objetivo de YOMI sigue siendo buscar todos los proveedores compatibles desde un único lugar.
+**Los índices de extensiones no son conectores funcionales.** No ejecutamos código
+externo ni instalamos APK desconocidas por la seguridad del usuario.
 
-## Fuentes e idioma
+## Directorios de extensiones disponibles
 
-- **MangaDex:** consulta de títulos con traducción disponible en español y feed de capítulos exclusivamente en español, cuando los hay.
-- **CBZ local:** importación y lectura offline.
-- **Comick:** directorio público no habilitado para lectura; al exigir verificación del español no se mezcla contenido sin idioma comprobado.
-- **Repositorios Mihon/Tachiyomi (Keiyoushi, Nyora, WOX):** solo índice de fuentes etiquetadas en español; **NO son conectores automáticos ni APK ejecutadas**.
+En **Ajustes → Repositorios** hay índices de Keiyoushi, Nyora, WOX y tres
+archivos comunitarios adicionales: **Hycnyl**, **GeorgyDesign** y **MiguelMA3**.
+Se indexan solo entradas que declaran idioma español. Algunos índices son archivos
+históricos con entradas duplicadas o desactualizadas; YOMI no garantiza su
+funcionamiento. No se añaden automáticamente a la búsqueda o lectura.
 
-## Descargar APK
+## Funcionalidades anteriores
 
-GitHub Actions → **Android APK** → última ejecución verde → artefacto \`YOMI-debug-apk\`.
-Se compila y prueban casos unitarios con JDK 17 y Android SDK.
-Instalador de pruebas, no versión release firmada.
+- Biblioteca con categorías, favoritas, varios modos de visualización, filtros,
+  agrupación y ordenamiento; historial y actualización.
+- Detalle con fondo basado en la portada, sinopsis plegada y etiquetas interactivas.
+- Descarga completa o por tramos de los capítulos cargados en la ficha.
+- Lector vertical, RTL/LTR, con barras ocultas y controles por toque.
+- Importación CBZ, seguimiento de progreso y lectura sin conexión.
 
-## Límites
+## Instalar
 
-- Los contadores y el orden por capítulos dependen de los metadatos almacenados de la última actualización, no del universo completo de fuentes externas.
-- Para actualizar toda la biblioteca hay que conservar YOMI abierta durante el proceso actual.
-- No hay aún restauración de respaldo Mihon ni sincronización entre dispositivos.
-- Las fuentes de extensión de terceros no funcionan hasta integrar adaptadores compatibles con autorización.
-- Pendiente validar experiencia táctil y rendimiento en móviles y tabletas reales.
+1. Entra a [GitHub Actions](https://github.com/AnthonyHenriquezLuciano/YOMI/actions).
+2. Abre la última ejecución **Android APK** aprobada.
+3. Descarga \`YOMI-debug-apk\`, extrae el ZIP e instala \`app-debug.apk\`.
 
-La aplicación no está afiliada a los proveedores de contenido. Se respetan licencias y condiciones de las APIs integradas.
+Versión para pruebas internas, no release de producción firmada.
+
+## Límites técnicos
+
+- Comprobar en dispositivo real la velocidad del listado con verificaciones de
+  capítulos y disponibilidad de traducciones.
+- Las verificaciones y el contador dependen de MangaDex y sus límites de API.
+- ML Kit descarga el modelo de traducción desde Google la primera vez por Wi-Fi.
+- Si el origen no tiene un título español y tampoco romanización, no es posible
+  garantizar un nombre de marca oficial en español.
+- La traducción automática de sinopsis puede contener errores.
+- No se ha integrado un motor seguro de ejecución de extensiones Tachiyomi.
+- Falta sistema de descargas persistente con WorkManager y migración de respaldos.
+
+Fuentes de contenido y traducciones son propiedad de sus respectivos titulares.
+YOMI respeta las condiciones de uso de MangaDex y otros proveedores.
