@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
+import java.text.Normalizer
 
 data class SearchResponse(
     val works: List<Work>,
@@ -36,6 +37,7 @@ class GlobalCatalog(private val sources: List<ContentSource>) {
             }
         }.awaitAll()
         val works = all.flatMap { it.page.works }
+            .filter { matchesSearchTitle(it, query) }
             .filter { filters.format == null || it.format == filters.format }
             .filter { !filters.verifyChapters || it.sourceId == "local" || it.chapterCount > 0 }
         val grouped = works.groupBy {
@@ -58,6 +60,22 @@ class GlobalCatalog(private val sources: List<ContentSource>) {
             hasMore = all.any { it.page.hasMore }
         )
     }
+
+    /** Exclude unrelated titles returned by broad source searches. */
+    private fun matchesSearchTitle(work: Work, query: String): Boolean {
+        val terms = searchKey(query).split(' ').filter { it.length > 1 }
+        if (terms.isEmpty()) return true
+        return (listOf(work.title) + work.alternativeTitles).any { title ->
+            val normalized = searchKey(title)
+            terms.all { term -> normalized.contains(term) }
+        }
+    }
+
+    private fun searchKey(value: String): String =
+        Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
+            .replace(Regex("[\\u0300-\\u036f]"), "")
+            .replace(Regex("[^a-z0-9]+"), " ")
+            .trim()
 
     fun source(id: String): ContentSource? = sources.firstOrNull { it.id == id }
 }
