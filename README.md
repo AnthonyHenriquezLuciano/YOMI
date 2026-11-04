@@ -1,65 +1,72 @@
-# YOMI — Manga, Manhwa y Manhua
+# YOMI Global · Android 0.2.0
 
-YOMI es un lector Android nativo en Kotlin y Jetpack Compose. Diseño blanco/negro, biblioteca local, búsqueda en un catálogo unificado y lectura adaptable a manga paginado y webtoon vertical.
+Aplicación nativa Kotlin/Jetpack Compose para manga, manhwa y manhua.
+Explorar combina fuentes compatibles en un catálogo global, con lector adaptable, biblioteca,
+descargas y archivos CBZ locales.
 
-## Estado actual — versión 0.1.0 (base funcional)
+## Integraciones de contenido
 
-- Cinco secciones Compose: Inicio, Explorar, Biblioteca, Descargas y Ajustes.
-- Buscador global con motor de proveedores concurrentes y agrupación conservadora de títulos.
-- **Proveedor remoto inicial: MangaDex** (API pública con atribuciones). No afirmar que todas las webs son compatibles: para sumar proveedores se necesitan conectores propios y condiciones de uso compatibles.
-- Exploración de manga, manhwa y manhua con categorías por idioma original; filtro de formato.
-- Detalle con sinopsis, fuente, traducciones, lista de capítulos y atribución del grupo.
-- Lector vertical continuo y paginado RTL/LTR, modo sugerido según origen/etiqueta Long Strip, override por obra.
-- Biblioteca, historial de posición por obra y capítulos leídos almacenados en dispositivo.
-- Descarga por capítulo en almacenamiento privado, relectura offline.
-- Importación de archivos CBZ mediante selector de Android, sin almacenamiento externo general.
-- Compilación automatizada en GitHub Actions con APK de depuración como artifact.
+| Integración | Búsqueda | Capítulos | Lectura dentro de YOMI |
+|---|---|---|---|
+| MangaDex | Sí, por API pública | Sí | Sí, cuando el proveedor ofrece páginas |
+| Comick | Sí, catálogo público | No habilitado | No, abre su sitio externo |
+| CBZ local | Sí, títulos importados | Sí | Sí, sin conexión |
 
-## Descargar APK
+**No hay un conector universal que permita buscar y leer directamente desde todas las webs.**
+Cada proveedor necesita una API compatible o un adaptador con mantenimiento y permisos.
 
-1. Abre la pestaña [Actions](https://github.com/AnthonyHenriquezLuciano/YOMI/actions).
-2. Selecciona la última ejecución **Android APK** con resultado correcto.
-3. Descarga el artifact **YOMI-debug-apk** y extrae `app-debug.apk`.
-4. Instala en Android 8.0+ (habilitando instalación de APK para el gestor correspondiente).
+## Directorio de repositorios de extensiones
 
-> El APK de depuración es para pruebas personales, no es una versión de producción firmada.
+En **Ajustes → Explorar repositorios** se pueden consultar *metadatos* de repositorios
+Mihon/Tachiyomi. Están precargados:
 
-## Ejecutar localmente
+- Keiyoushi (su índice público actual puede mostrar únicamente mensajes de actualización de app).
+- Nyora SFW (el índice puede agrupar cientos de fuentes bajo una sola extensión sin listar cada fuente).
+- WOX Tadami manga (indexación de nombres, idiomas y enlaces declarados por el repositorio).
 
-- JDK 17; Android SDK plataforma 37; Gradle 9.4.1.
-- Importa el repositorio en Android Studio compatible con AGP 9.2.1.
-- Sin wrapper de Gradle todavía: ejecuta `gradle :app:assembleDebug` o utiliza Gradle desde Android Studio.
+También se pueden añadir índices `index.min.json` y `index.json` alojados en GitHub o
+GitHub Pages mediante HTTPS. Se filtran las entradas marcadas como NSFW por el índice.
 
-## Arquitectura
+**AVISO: solo se leen datos JSON.** Los índices pueden ser erróneos u obsoletos.
+YOMI **no instala ni ejecuta** las APK de los repositorios.
+Esas fuentes **NO se añaden al buscador de títulos** por el hecho de aparecer en el directorio.
+Las extensiones son código Android de terceros y requerirían un motor aislado,
+análisis de seguridad y compatibilidad antes de utilizarse como fuentes funcionales.
 
-```text
-app.yomi.reader
-├── core
-│   ├── Models.kt          // Tipos y contrato ContentSource
-│   ├── MangaDexSource.kt  // Proveedor remoto
-│   └── GlobalCatalog.kt   // Búsqueda concurrente con aislamiento de errores
-├── data
-│   └── YomiStore.kt       // Biblioteca, progreso, descargas y CBZ
-├── ui
-│   ├── Screens.kt         // Inicio, Explorar, Biblioteca, Descargas, Ajustes, detalle
-│   └── ReaderScreen.kt    // Lector vertical y paginado
-└── MainActivity.kt        // Navegación y estado
-```
+Validaciones de seguridad: HTTPS, lista de dominios permitidos, sin redirecciones,
+máximo 3 MiB por índice y sin credenciales embebidas ni descarga de ejecutables.
 
-## Límites y próximos hitos
+## Funciones de YOMI 0.2
 
-YOMI Global es una **arquitectura extensible**, no un agregador universal de sitios no autorizados. Para incorporar nuevas fuentes hay que implementar `ContentSource` y registrar el proveedor. En esta versión solo se conecta MangaDex y se aceptan CBZ locales.
+- Inicio, Explorar, Biblioteca, Descargas, Ajustes y directorio de repositorios.
+- Búsqueda global de MangaDex y catálogo de Comick con aislamiento de errores.
+- Búsqueda paginada, filtros y resultados por formato.
+- Sinopsis plegada por defecto.
+- Lector vertical, RTL y LTR con progreso persistente y gestos.
+- Descargas privadas por capítulo, importador CBZ y lectura local.
+- Catálogos alternativos enlazados a una misma obra sin perder la procedencia.
+- Créditos de MangaDex y grupos de traducción.
 
-Pendiente para una versión de lanzamiento: fusionar catálogos de varias fuentes con confirmación de identidad; fallback seguro entre proveedores; migración de respaldos Mihon; sincronización opcional; estadísticas; descarga reanudable con WorkManager; paginación completa de catálogos; panel-to-panel; modos de lectura más sofisticados; mejores herramientas de accesibilidad; pruebas de rendimiento con tiras largas; QA en dispositivos reales y preparación de firma de producción.
+## Compilar
 
-## Uso responsable de fuentes
+GitHub Actions: `Android APK`. El workflow ejecuta
+`gradle :app:assembleDebug :app:testDebugUnitTest` con JDK 17 y Android SDK.
 
-- MangaDex es un proveedor gratuito y **exige atribución a MangaDex y a los grupos de traducción**, además de respetar solicitudes de retirada.
-- MangaDex **prohíbe mostrar anuncios o cobrar por la aplicación que consume su API**.
-- YOMI no incluye anuncios, pagos, scrapers evasivos ni repositorios de extensiones no verificados.
-- El contenido y los derechos de publicación pertenecen a sus titulares respectivos.
-- [Documentación y política de uso de MangaDex](https://gitlab.com/mangadex-pub/mangadex-api-docs).
+[Ver compilaciones](https://github.com/AnthonyHenriquezLuciano/YOMI/actions).
+Descarga el artefacto `YOMI-debug-apk` de la última ejecución **correcta**.
 
-## Desarrollo
+Para compilar localmente se necesitan Gradle 9.4.1, Android Gradle Plugin 9.2.1
+y plataforma Android 37. La versión 0.2.0 es de pruebas, no release firmada.
 
-Código inicial para pruebas e iteración. No se ha efectuado aún un lanzamiento de producción.
+## Pendientes
+
+- Verificar comportamiento de Comick con su API en Android y completar lector solo si su
+  API pública lo permite.
+- Habilitar otras fuentes mediante conectores dedicados.
+- Opciones para activar/desactivar conectores por usuario.
+- Sincronización de lectura y migración de respaldos Mihon.
+- Descargas resilientes, manejo de 429 y pruebas de memoria en webtoons largos.
+- Tests en teléfonos y tabletas reales.
+
+No afiliado a Mihon, MangaDex, Comick, Keiyoushi ni otros proveedores.
+Se respetan sus políticas, licencias y derechos de autor.

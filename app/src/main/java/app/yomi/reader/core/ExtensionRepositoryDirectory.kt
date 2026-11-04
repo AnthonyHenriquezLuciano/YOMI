@@ -40,7 +40,6 @@ data class RepositoryListing(
  */
 class ExtensionRepositoryDirectory(private val context: Context) {
     private val prefs = context.getSharedPreferences("yomi-extension-indexes-v1", Context.MODE_PRIVATE)
-    private val supportedHosts = setOf("raw.githubusercontent.com", "github.com")
     companion object {
         val defaults = listOf(
             ExtensionRepository(
@@ -51,6 +50,11 @@ class ExtensionRepositoryDirectory(private val context: Context) {
             ExtensionRepository(
                 name = "Nyora · fuentes SFW",
                 url = "https://raw.githubusercontent.com/Nyora-Manga/nyora-mihon/main/index.min.json",
+                builtIn = true
+            ),
+            ExtensionRepository(
+                name = "WOX · Índice comunitario",
+                url = "https://raw.githubusercontent.com/WizardOfXerox/WOX-Tadami-Extensions/main/apks/manga/index.min.json",
                 builtIn = true
             )
         )
