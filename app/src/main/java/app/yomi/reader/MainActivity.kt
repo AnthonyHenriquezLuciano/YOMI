@@ -53,6 +53,7 @@ fun YomiApp() {
     var sourceVariants by remember { mutableStateOf<Map<String, List<Work>>>(emptyMap()) }
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    var showRepositories by remember { mutableStateOf(false) }
     var selectedWork by remember { mutableStateOf<Work?>(null) }
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
@@ -169,6 +170,9 @@ fun YomiApp() {
             val work = selectedWork
             val chapter = selectedChapter
             when {
+                showRepositories -> RepositoryDirectoryScreen(
+                    onBack = { showRepositories = false }
+                )
                 work != null && chapter != null -> ReaderScreen(
                     work = work, chapter = chapter, urls = pages,
                     loading = pageLoading, error = error,
@@ -298,7 +302,8 @@ fun YomiApp() {
                                         "application/x-cbz", "application/octet-stream"))
                                 },
                                 libraryCount = library.size,
-                                downloadCount = downloads.size
+                                downloadCount = downloads.size,
+                                onRepositories = { showRepositories = true }
                             )
                         }
                         if (operationMessage.isNotBlank()) {

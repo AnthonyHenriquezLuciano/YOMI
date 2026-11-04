@@ -393,7 +393,8 @@ fun DownloadsScreen(
 @Composable
 fun SettingsScreen(
     dark: Boolean, onDark: (Boolean) -> Unit, onImport: () -> Unit,
-    libraryCount: Int, downloadCount: Int
+    libraryCount: Int, downloadCount: Int,
+    onRepositories: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
         .padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -420,8 +421,15 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider()
         Text("Fuentes integradas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("MangaDex · Catálogo en línea", fontWeight = FontWeight.Medium)
-        Text("La arquitectura permite añadir más proveedores compatibles. No se instalan APK externas.",
+        Text("MangaDex · Lector integrado", fontWeight = FontWeight.Medium)
+        Text("Comick · Búsqueda de catálogo y enlace externo", fontWeight = FontWeight.Medium)
+        Text("CBZ local · Importación desde el dispositivo", fontWeight = FontWeight.Medium)
+        OutlinedButton(onClick = onRepositories, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.AccountTree, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Explorar repositorios de extensiones")
+        }
+        Text("Los índices muestran proveedores disponibles. Las extensiones APK no se ejecutan ni se instalan en YOMI.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider()
