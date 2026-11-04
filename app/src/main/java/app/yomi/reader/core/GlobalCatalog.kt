@@ -7,7 +7,8 @@ import kotlinx.coroutines.supervisorScope
 data class SearchResponse(
     val works: List<Work>,
     val errors: List<String> = emptyList(),
-    val sourceCounts: Map<String, Int> = emptyMap()
+    val sourceCounts: Map<String, Int> = emptyMap(),
+    val alternatives: Map<String, List<Work>> = emptyMap()
 )
 class GlobalCatalog(private val sources: List<ContentSource>) {
     val enabledSources: List<ContentSource> get() = sources
@@ -20,11 +21,19 @@ class GlobalCatalog(private val sources: List<ContentSource>) {
             }
         }.awaitAll()
         val works = all.flatMap { it.second }
-        // Global search groups titles for display, but the original source ID is retained.
+        // Keep every source variant accessible: never discard it when unifying titles.
+        val grouped = works.groupBy { normalizedTitle(it.title) + "|" + it.format.name }
+        val representatives = grouped.values.map { group ->
+            group.firstOrNull { it.language == "es" } ?: group.first()
+        }.filter { format == null || it.format == format }.sortedBy { it.title }
+        val alternatives = representatives.associate { selected ->
+            selected.key to grouped.getValue(normalizedTitle(selected.title) + "|" + selected.format.name)
+        }
         SearchResponse(
-            works = groupResults(works).filter { format == null || it.format == format },
+            works = representatives,
             errors = all.filter { it.third.isNotBlank() }.map { it.first + ": " + it.third },
-            sourceCounts = all.associate { it.first to it.second.size }
+            sourceCounts = all.associate { it.first to it.second.size },
+            alternatives = alternatives
         )
     }
     fun source(id: String): ContentSource? = sources.firstOrNull { it.id == id }

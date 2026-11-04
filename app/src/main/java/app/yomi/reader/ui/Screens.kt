@@ -323,6 +323,7 @@ fun SettingsScreen(
 @Composable
 fun DetailScreen(
     work: Work, chapters: List<Chapter>, loading: Boolean, error: String,
+    sourceChoices: List<Work>, onSourceChange: (Work) -> Unit,
     isSaved: Boolean, isRead: (String) -> Boolean,
     onBack: () -> Unit, onBookmark: () -> Unit,
     onRead: (Chapter) -> Unit, onContinue: () -> Unit,
@@ -355,6 +356,22 @@ fun DetailScreen(
                         style = MaterialTheme.typography.labelMedium)
                     Text("Idioma original: " + work.language,
                         style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+        if (sourceChoices.size > 1) {
+            item {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Fuentes disponibles", fontWeight = FontWeight.Bold)
+                    Row(Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        sourceChoices.forEach { option ->
+                            FilterChip(selected = option.key == work.key,
+                                onClick = { onSourceChange(option) },
+                                label = { Text(if (option.sourceId == "mangadex") "MangaDex" else "CBZ local") })
+                        }
+                    }
                 }
             }
         }

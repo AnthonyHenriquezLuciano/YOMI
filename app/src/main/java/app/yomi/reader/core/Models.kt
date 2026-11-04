@@ -26,7 +26,7 @@ data class Work(
     val key: String get() = sourceId + ":" + id
     fun defaultMode(): ReadingMode = when {
         longStrip || format == WorkFormat.MANHWA -> ReadingMode.VERTICAL
-        format == WorkFormat.MANHUA -> ReadingMode.VERTICAL
+        format == WorkFormat.MANHUA -> ReadingMode.LTR
         format == WorkFormat.MANGA -> ReadingMode.RTL
         else -> ReadingMode.LTR
     }

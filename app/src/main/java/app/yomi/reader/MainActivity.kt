@@ -43,6 +43,7 @@ fun YomiApp() {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf<WorkFormat?>(null) }
     var searchWorks by remember { mutableStateOf<List<Work>>(emptyList()) }
+    var sourceVariants by remember { mutableStateOf<Map<String, List<Work>>>(emptyMap()) }
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     var selectedWork by remember { mutableStateOf<Work?>(null) }
@@ -68,6 +69,7 @@ fun YomiApp() {
             try {
                 val result = catalog.search(text, format)
                 searchWorks = result.works
+                sourceVariants = result.alternatives
                 if (result.errors.isNotEmpty()) error = result.errors.joinToString("\n")
             } catch (e: Exception) {
                 error = e.message ?: "No se pudo consultar el catálogo"
@@ -161,6 +163,8 @@ fun YomiApp() {
                 )
                 work != null -> DetailScreen(
                     work = work, chapters = chapters, loading = chapterLoading,
+                    sourceChoices = sourceVariants.values.firstOrNull { group -> group.any { it.key == work.key } } ?: listOf(work),
+                    onSourceChange = { selectedWork = it },
                     error = error, isSaved = library.any { it.key == work.key },
                     isRead = { store.isRead(it) },
                     onBack = { selectedWork = null; error = "" },
